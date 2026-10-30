@@ -1,0 +1,17 @@
+{
+  "warning": "SYNTHETIC endpoints on real flows. Proves the mechanism and file rules only; not a prediction of hidden-set performance.",
+  "assignment": "one source per attack class, 30 sources for DDoS, 2% of benign flows share an attacker address",
+  "rows": 114185,
+  "rule_violations": [],
+  "policies": 164,
+  "correlation_groups": 2453,
+  "attack_flows_blocked_share": 0.9925808356710468,
+  "benign_flows_blocked_share": 0.005416576390393494,
+  "benign_flows_blocked": 325,
+  "attack_blocked_share_by_class": {
+    "BRUTE_FORCE": 0.971820809248555,
+    "DDOS": 0.9784027777777777,
+    "DOS": 0.999125,
+    "PORT_SCAN": 0.9978472222222222
+  }
+}
