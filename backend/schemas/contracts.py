@@ -156,7 +156,9 @@ class EvidenceGraph(BaseModel):
 
 class CorrelationEvidence(BaseModel):
     window_records: int
+    window_seconds: float | None
     flows_in_window: int
+    suspicious_flows: int
     confident_attack_flows: int
     attack_share: float
     anomalous_flows: int
@@ -177,6 +179,13 @@ class CorrelationGroup(BaseModel):
     last_record_id: str
     member_record_ids: list[str]
     member_count: int
+    source_ips: list[str]
+    destination_ips: list[str]
+    destination_ports: list[float]
+    first_observed: str
+    last_observed: str
+    supporting_evidence: list[dict]
+    correlation_reason: str
     evidence: CorrelationEvidence
 
 
@@ -196,6 +205,10 @@ class DefensePolicy(BaseModel):
     converging_group_id: str | None
     rationale: str
     evidence: CorrelationEvidence
+
+
+class DefenseStopRequest(BaseModel):
+    reason: str = Field(default="", max_length=500)
 
 
 class DefenseState(BaseModel):
@@ -301,6 +314,7 @@ class ReplayStatus(BaseModel):
     inference_flows_per_second: float | None
     latest_seq: int
     defense_available: bool
+    defense_stopped: bool
     active_policies: int
     policies_activated: int
     correlation_groups: int

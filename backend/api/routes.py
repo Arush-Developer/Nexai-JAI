@@ -9,7 +9,7 @@ from fastapi.responses import StreamingResponse
 
 from backend.schemas.contracts import (
     AnalyseFlowRequest, FlowDetail, HealthResponse, InvestigationResult, ModelStatusResponse, PolicyConfigureRequest,
-    DefenseState, PolicySimulateRequest, ReplayStartRequest, ReplayStatus)
+    DefenseState, DefenseStopRequest, PolicySimulateRequest, ReplayStartRequest, ReplayStatus)
 
 router = APIRouter(prefix="/api")
 SSE_POLL_SECONDS = 0.2
@@ -139,6 +139,13 @@ def policy_simulate(request: Request, body: PolicySimulateRequest):
 def defense(request: Request, member_limit: int = Query(25, ge=0, le=5000), group_limit: int = Query(200, ge=1, le=5000)):
     """Agents 4 and 5 from the current replay: correlation groups, policies, activation and expiry log."""
     return state_of(request).defense_state(member_limit, group_limit)
+
+
+@router.post("/defense/stop", response_model=ReplayStatus)
+def defense_stop(request: Request, body: DefenseStopRequest):
+    """STOP for Agent 5: no new policies until the next fresh replay. Active ones run to their recorded expiry."""
+    replay = state_of(request).replay
+    return _control(lambda: replay.stop_defense(body.reason))
 
 
 def _control(call):

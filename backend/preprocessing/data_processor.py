@@ -38,23 +38,77 @@ def map_labels(raw: pd.Series) -> pd.Series:
 
 def standardise_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Strip stray whitespace, and accept "Source IP"-style spellings of the metadata columns."""
-    meta = {c.lower(): c for c in load_config()["data"]["metadata_columns"]}
+    cfg = load_config()["data"]
+    meta = {**{c.lower(): c for c in cfg["metadata_columns"]}, **cfg.get("metadata_aliases", {})}
     renamed = {c: meta.get(c.strip().lower().replace(" ", "_"), c.strip()) for c in df.columns}
     # "Destination Port" stays a flow feature; it is copied into the metadata in split_representations.
     renamed = {c: c.strip() if c.strip() == PORT_FEATURE else new for c, new in renamed.items()}
     return df.rename(columns=renamed)
 
 
+class ReplayOrderError(ValueError):
+    """The supplied records do not describe one unambiguous chronological order."""
+
+
+def parse_timestamps(values: pd.Series, dayfirst: bool = False) -> np.ndarray:
+    """Seconds as floats, NaN where unreadable. Numeric columns are taken as already being seconds."""
+    numeric = pd.to_numeric(values, errors="coerce")
+    if numeric.notna().all():
+        return numeric.to_numpy(dtype=np.float64)
+    parsed = pd.to_datetime(values, errors="coerce", format="mixed", dayfirst=dayfirst, utc=True)
+    return (parsed - pd.Timestamp(0, tz="UTC")).dt.total_seconds().to_numpy(dtype=np.float64)
+
+
 def replay_order(metadata: pd.DataFrame) -> np.ndarray:
-    """Row positions in the supplied replay order: seq, then timestamp, then numeric id, then file order."""
+    """Row positions in the supplied order: the organisers' seq column if present, otherwise file order.
+
+    Timestamps and record ids never reorder anything. check_replay_order reports any conflict with them.
+    """
     if "seq" in metadata:
         return np.argsort(pd.to_numeric(metadata["seq"]).to_numpy(), kind="stable")
-    if "timestamp" in metadata:
-        return np.argsort(pd.to_datetime(metadata["timestamp"], errors="coerce").to_numpy(), kind="stable")
-    numeric = pd.to_numeric(metadata["flow_id"].astype(str).str.extract(r"(\d+)")[0], errors="coerce")
-    if numeric.notna().all():
-        return np.argsort(numeric.to_numpy(), kind="stable")
     return np.arange(len(metadata))
+
+
+def check_replay_order(metadata: pd.DataFrame, on_conflict: str = "error", dayfirst: bool = False) -> dict:
+    """Validate the supplied order before any record is replayed.
+
+    Duplicate record ids or an unusable seq always raise, because no order can be derived from them.
+    Other conflicts raise when on_conflict is "error"; with "report" they are returned as ambiguities
+    and replay follows replay_order, so a human decides whether the run can be submitted.
+    """
+    if on_conflict not in ("error", "report"):
+        raise ValueError(f"on_conflict must be 'error' or 'report', not {on_conflict!r}")
+    if metadata["flow_id"].duplicated().any():
+        repeated = metadata["flow_id"][metadata["flow_id"].duplicated()].astype(str).head(5).tolist()
+        raise ReplayOrderError(f"record ids repeat, for example {repeated}")
+    ambiguities: list[str] = []
+    authority = "file order"
+    if "seq" in metadata:
+        authority = "seq"
+        seq = pd.to_numeric(metadata["seq"], errors="coerce")
+        if seq.isna().any() or seq.duplicated().any():
+            raise ReplayOrderError(f"seq is unusable: {int(seq.isna().sum())} missing, "
+                                   f"{int(seq.duplicated().sum())} repeated")
+        if not seq.is_monotonic_increasing:
+            ambiguities.append("file row order differs from the seq column; seq is being followed")
+    order = replay_order(metadata)
+    timestamps_checked = "timestamp" in metadata
+    if timestamps_checked:
+        seconds = parse_timestamps(metadata["timestamp"], dayfirst)[order]
+        unreadable = int(np.isnan(seconds).sum())
+        if unreadable:
+            ambiguities.append(f"{unreadable} timestamps could not be read")
+        known = np.flatnonzero(~np.isnan(seconds))
+        backwards = known[1:][np.diff(seconds[known]) < 0]
+        if len(backwards):
+            first = str(metadata["flow_id"].iat[order[backwards[0]]])
+            ambiguities.append(f"{len(backwards)} records have a timestamp earlier than the record before them "
+                               f"in {authority}, first at {first}")
+    if ambiguities and on_conflict == "error":
+        raise ReplayOrderError("; ".join(ambiguities) + ". Ask the organisers which order is authoritative, or "
+                               "rerun with on_conflict='report' to proceed with this reported.")
+    return {"authority": authority, "records": len(metadata), "timestamps_checked": timestamps_checked,
+            "ambiguities": ambiguities}
 
 
 def split_representations(df: pd.DataFrame) -> Partition:

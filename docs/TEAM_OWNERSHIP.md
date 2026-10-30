@@ -4,61 +4,91 @@ This records who is responsible for each module, not who wrote it. The first ver
 
 `docs/TEAM_HANDOFF.md` has what each person must review. `docs/MODULE_CONTRACTS.md` defines the interfaces below.
 
-## Arush: backend architecture and integration
+## Day 2 agent ownership
 
-| Files | Responsibility |
+| Agent | Owner |
 |---|---|
-| `backend/main.py`, `backend/config.py` | Entry point, configuration |
-| `backend/api/routes.py`, `backend/api/submission_adapter.py` | HTTP and SSE API; Level 1 submission |
-| `backend/services/model_service.py`, `backend/services/app_state.py` | Runs the agents; state behind the API |
-| `backend/agents/fusion_agent.py`, `backend/agents/investigation_orchestrator.py` | Agent 3; investigation planning |
-| `backend/intelligence/evidence_engine.py` | Evidence graph |
-| `backend/investigation/audit.py` | Audit log |
-| `backend/policy/policy_engine.py` | Simulated decisions, what-if |
-| `backend/agents/defense_agent.py` | Agent 5 and the per-record defence loop |
-| `backend/services/level2.py`, `scripts/run_level2.py`, `scripts/rehearse_level2.py` | Level 2 CSVs, rule checker, rehearsal |
-| `backend/replay/replay_engine.py` | Replay |
-| `backend/schemas/contracts.py` | Shared contracts, coordinated with everyone |
-| `scripts/calibrate_fusion.py`, `scripts/score_records.py`, `scripts/run_all.sh` | Thresholds, scoring, full rebuild |
-| `tests/agents/test_fusion.py`, `tests/agents/test_temporal_defense.py`, `tests/policy/`, `tests/replay/`, `tests/api/`, `tests/integration/`, `tests/test_imports.py` | Backend and end-to-end tests |
+| A1 Threat Detection | Arnav |
+| A2 Anomaly Detection | Arpit |
+| A3 Evidence Fusion | Lucky |
+| A4 Temporal Correlation, and chronological replay integration | Arush |
+| A5 Adaptive Defence, and policy activation and expiry | Agrim |
 
-- **Inputs:** Agent 1 and 2 outputs, campaign results, tool results, HTTP requests.
-- **Outputs:** `FusionAssessment`, `PolicyOutcome`, `InvestigationResult`, the REST and SSE API.
-- **Test:** `.venv/bin/python -m pytest tests/agents/test_fusion.py tests/policy tests/replay tests/api tests/integration -v`
+Modules outside the five agents stay with whoever held them on Day 1. `docs/TEAM_VIVA_GUIDE.md` has what each person must be able to defend.
 
-## Arpit: data engineering and supervised ML
-
-| Files | Responsibility |
-|---|---|
-| `backend/preprocessing/data_processor.py` | Loading, cleaning, splits, leakage control |
-| `backend/agents/threat_agent.py` | Agent 1 |
-| `backend/evaluation/metrics.py` | Metrics |
-| `models/threat_model/` | Threat model artifact |
-| `scripts/profile_dataset.py`, `scripts/train_models.py`, `scripts/leakage_audit.py`, `scripts/evaluate.py` | Profiling, training, audit, evaluation |
-| `tests/agents/test_preprocessing.py`, `tests/agents/test_models_real_data.py`, threat tests in `tests/agents/test_agents.py` | Classification and data tests |
-
-- **Inputs:** `data/raw/cyber-pack.zip`, extracted parquet.
-- **Outputs:** `Partition`, `FeaturePipeline`, `ThreatAssessment`, `data/reports/`.
-- **Test:** `.venv/bin/python -m pytest tests/agents/test_preprocessing.py tests/agents/test_agents.py -v`
-
-## Arnav: anomaly and security intelligence
+## Arush: A4, replay integration and backend architecture
 
 | Files | Responsibility |
 |---|---|
 | `backend/agents/temporal_agent.py` | Agent 4 |
-| `tests/investigation/test_tools_real_data.py` | Each tool on real records |
-| `backend/agents/anomaly_agent.py` | Agent 2 |
+| `backend/replay/causal_replay.py`, `backend/replay/replay_engine.py` | Chronological state machine; live replay |
+| `backend/services/level2.py`, `scripts/run_level2.py`, `scripts/validate_level2.py`, `scripts/rehearse_level2.py`, `scripts/demo_day2.py` | Level 2 CSVs, rule checker, rehearsal, demonstration |
+| `backend/main.py`, `backend/config.py` | Entry point, configuration |
+| `backend/api/routes.py`, `backend/api/submission_adapter.py` | HTTP and SSE API; Level 1 submission |
+| `backend/services/model_service.py`, `backend/services/app_state.py` | Runs the agents; state behind the API |
+| `backend/agents/investigation_orchestrator.py`, `backend/intelligence/evidence_engine.py`, `backend/investigation/audit.py` | Investigation planning, evidence graph, audit log |
+| `backend/policy/policy_engine.py` | Simulated decisions, what-if |
+| `backend/schemas/contracts.py` | Shared contracts, coordinated with everyone |
+| `scripts/calibrate_fusion.py`, `scripts/score_records.py`, `scripts/run_all.sh` | Thresholds, scoring, full rebuild |
+| `tests/agents/test_temporal_correlation.py`, `tests/replay/`, `tests/policy/`, `tests/api/`, `tests/integration/`, `tests/test_imports.py` | Backend and end-to-end tests |
+
+- **Inputs:** Agents 1 to 3 output, endpoints, tool results, HTTP requests.
+- **Outputs:** `CorrelationGroup`, the three CSVs, `PolicyOutcome`, `InvestigationResult`, the REST and SSE API.
+- **Test:** `.venv/bin/python -m pytest tests/agents/test_temporal_correlation.py tests/replay tests/policy tests/api tests/integration -v`
+
+## Agrim: A5 (and frontend analytics, below)
+
+| Files | Responsibility |
+|---|---|
+| `backend/agents/defense_agent.py` | Agent 5: policy activation, expiry, STOP |
+| `scripts/tune_level2.py` | Threshold comparison |
+| `tests/agents/test_temporal_defense.py` | Agent 5 behaviour |
+
+- **Inputs:** the current record, Agent 3 status, Agent 4 evidence.
+- **Outputs:** `DefensePolicy`, the activation and expiry log.
+- **Test:** `.venv/bin/python -m pytest tests/agents/test_temporal_defense.py tests/replay/test_day2_causal_replay.py -v`
+
+## Lucky: A3 (and frontend foundation, below)
+
+| Files | Responsibility |
+|---|---|
+| `backend/agents/fusion_agent.py` | Agent 3 |
+| `tests/agents/test_fusion.py` | Fusion tests |
+
+- **Inputs:** Agents 1 and 2 output.
+- **Outputs:** `FusionAssessment`.
+- **Test:** `.venv/bin/python -m pytest tests/agents/test_fusion.py -v`
+
+## Arnav: A1 and security intelligence
+
+| Files | Responsibility |
+|---|---|
+| `backend/agents/threat_agent.py` | Agent 1 |
+| `models/threat_model/` | Threat model artifact |
 | `backend/intelligence/campaign_engine.py` | Cross-flow hypotheses |
-| `backend/intelligence/feature_explainer.py` | Median/MAD baseline, deviation evidence |
 | `backend/investigation/tools.py`, `backend/investigation/registry.py` | Investigation tools, bounded execution |
+| `tests/agents/test_models_real_data.py`, threat tests in `tests/agents/test_agents.py`, `tests/intelligence/`, `tests/investigation/` | Classification, campaign and investigation tests |
+
+- **Inputs:** feature frames, flow metadata. Never labels at prediction time.
+- **Outputs:** `ThreatAssessment`, `CampaignRecord`, `ToolResult`.
+- **Test:** `.venv/bin/python -m pytest tests/agents/test_models_real_data.py tests/intelligence tests/investigation -v`
+
+## Arpit: A2 and data engineering
+
+| Files | Responsibility |
+|---|---|
+| `backend/agents/anomaly_agent.py`, `backend/intelligence/feature_explainer.py` | Agent 2, median/MAD baseline, deviation evidence |
 | `models/anomaly_model/` | Anomaly model artifact |
-| `tests/intelligence/`, `tests/investigation/`, anomaly tests in `tests/agents/test_agents.py` | Campaign, investigation and anomaly tests |
+| `backend/preprocessing/data_processor.py` | Loading, cleaning, splits, leakage control, replay order check |
+| `backend/evaluation/metrics.py` | Metrics |
+| `scripts/profile_dataset.py`, `scripts/train_models.py`, `scripts/leakage_audit.py`, `scripts/evaluate.py` | Profiling, training, audit, evaluation |
+| `tests/agents/test_preprocessing.py`, anomaly tests in `tests/agents/test_agents.py` | Data and anomaly tests |
 
-- **Inputs:** feature frames, flow metadata, anomaly flags. Never labels or Agent 1's output for detection.
-- **Outputs:** `AnomalyAssessment`, `CampaignRecord`, `ToolResult`.
-- **Test:** `.venv/bin/python -m pytest tests/intelligence tests/investigation tests/agents/test_agents.py -v`
+- **Inputs:** `data/raw/cyber-pack.zip`, extracted parquet.
+- **Outputs:** `Partition`, `FeaturePipeline`, `AnomalyAssessment`, `data/reports/`.
+- **Test:** `.venv/bin/python -m pytest tests/agents/test_preprocessing.py tests/agents/test_agents.py -v`
 
-## Lucky: frontend foundation
+## Lucky: frontend foundation (with A3, above)
 
 | Files | Responsibility |
 |---|---|
@@ -75,7 +105,7 @@ This records who is responsible for each module, not who wrote it. The first ver
 - **Outputs:** the app shell, replay screens, and the client every screen uses.
 - **Test:** `npm --prefix frontend run build`, then run the checks in `docs/TEAM_HANDOFF.md`. No automated frontend tests exist yet.
 
-## Agrim: frontend analytics and investigation
+## Agrim: frontend analytics and investigation (with A5, above)
 
 | Files | Responsibility |
 |---|---|

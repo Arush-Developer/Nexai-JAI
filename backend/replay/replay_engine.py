@@ -14,15 +14,15 @@ from dataclasses import dataclass, replace
 import numpy as np
 import pandas as pd
 
-from backend.agents.defense_agent import BLOCK, DefenseLoop
 from backend.agents.investigation_orchestrator import (
     VERDICT_CONFLICTING, InvestigationCancelled, Orchestrator, triggers_for)
 from backend.config import load_config, resolve
 from backend.intelligence.campaign_engine import CampaignEngine, CampaignResult, CampaignTracker
 from backend.investigation.audit import AuditLog
 from backend.investigation.registry import ToolRegistry
-from backend.preprocessing.data_processor import replay_order
-from backend.services.level2 import defense_config, temporal_config
+from backend.preprocessing.data_processor import check_replay_order, replay_order
+from backend.replay.causal_replay import CausalReplayEngine
+from backend.services.level2 import defense_config, order_settings, replay_inputs, temporal_config
 from backend.services.model_service import HIGH_ANOMALY, Analysis, Pipeline
 
 STATE_FILE = "data/processed/replay_state.json"
@@ -49,12 +49,17 @@ class ReplayEngine:
         self.persist = persist
         partition = analysis.partition
         self.order = replay_order(partition.metadata)
+        # A live screen reports an order conflict rather than refusing to start; the CSV export refuses.
+        self.order_report = check_replay_order(partition.metadata, "report", order_settings()["dayfirst"])
+        if self.order_report["ambiguities"]:
+            self.audit.record("replay_order", **self.order_report)
+        self.settings = ReplaySettings()
+        self._defense_stop: tuple[int, str] | None = None
         self.defense_available = {"source_ip", "destination_ip"} <= set(partition.metadata.columns)
         self.defense = self._new_defense()
         # Replay tools see only records up to the flow in question, and only the campaigns found so far.
         self.store = replace(analysis.store, causal=True, flow_campaign=np.full(len(analysis.frame), None, dtype=object),
                              campaigns={})
-        self.settings = ReplaySettings()
         self._lock = threading.RLock()
         self._events: deque[dict] = deque(maxlen=EVENT_BUFFER)
         self._seq = 0
@@ -77,9 +82,10 @@ class ReplayEngine:
         mode = self.analysis.campaign.mode
         return CampaignTracker(mode, self.pipeline.campaign_engine.config)
 
-    def _new_defense(self) -> DefenseLoop | None:
+    def _new_defense(self) -> CausalReplayEngine | None:
         cfg = load_config().get("level2", {})
-        return DefenseLoop(temporal_config(cfg), defense_config(cfg)) if self.defense_available else None
+        temporal = replace(temporal_config(cfg), on_timestamp_regression="report")
+        return CausalReplayEngine(temporal, defense_config(cfg), self._target()) if self.defense_available else None
 
     def _empty_counts(self) -> dict:
         return {
@@ -115,6 +121,7 @@ class ReplayEngine:
                 self.cursor = 0
                 self.counts = self._empty_counts()
                 self.tracker = self._new_tracker()
+                self._defense_stop = None
                 self.defense = self._new_defense()
                 self.store.flow_campaign[:] = None
                 self.store.campaigns = {}
@@ -171,6 +178,17 @@ class ReplayEngine:
         self._save()
         return self.snapshot()
 
+    def stop_defense(self, reason: str = "") -> dict:
+        """STOP for Agent 5 only: no new policies. Replay carries on and active policies run to their expiry."""
+        with self._lock:
+            if self.defense is None:
+                raise RuntimeError("Agent 5 is off for this input")
+            self._defense_stop = (self.defense.position, reason)
+            self.defense.stop(reason)
+        self.audit.record("replay_control", action="stop_defense", position=self._defense_stop[0], reason=reason)
+        self._emit("state", status=self.status, cursor=self.cursor)
+        return self.snapshot()
+
     def snapshot(self) -> dict:
         with self._lock:
             target = self._target()
@@ -179,6 +197,7 @@ class ReplayEngine:
                 "status": self.status,
                 "cursor": self.cursor,
                 "defense_available": self.defense_available,
+                "defense_stopped": self.defense.defense.stopped if self.defense else False,
                 "active_policies": self.defense.defense.active_count if self.defense else 0,
                 "policies_activated": len(self.defense.defense.policies) if self.defense else 0,
                 "correlation_groups": len(self.defense.temporal.groups) if self.defense else 0,
@@ -319,10 +338,17 @@ class ReplayEngine:
         # Agents 1-3 alone, as in the export, so a fresh replay reproduces the submitted files exactly.
         proba = out[[f"proba_{c}" for c in self.pipeline.threat.classes]].to_numpy()
         status = self.pipeline.fuse_level1(proba, out["anomaly_score"].to_numpy()).evidence_status
-        for i, (src, dst, port, r) in enumerate(zip(metadata["source_ip"].astype(str), metadata["destination_ip"].astype(str),
-                                                    metadata["destination_port"], out.itertuples(index=False))):
-            step = self.defense.step(offset + i, str(r.flow_id), src, dst, float(port), r.final_class,
-                                     float(r.threat_confidence), float(r.anomaly_score), bool(r.is_anomaly), status[i])
+        inputs = replay_inputs(metadata, order_settings()["dayfirst"])
+        # A STOP is replayed at the same record when the state is rebuilt, so a resume cannot lose it.
+        if self._defense_stop and self._defense_stop[0] < offset:
+            self.defense.stop(self._defense_stop[1])
+        for i, r in enumerate(out.itertuples(index=False)):
+            step = self.defense.step(offset + i, str(r.flow_id), inputs["source"][i], inputs["destination"][i],
+                                     inputs["port"][i], r.final_class, float(r.threat_confidence),
+                                     float(r.anomaly_score), bool(r.is_anomaly), status[i], inputs["timestamp"][i],
+                                     inputs["observed_at"][i], inputs["source_port"][i])
+            if self._defense_stop and self._defense_stop[0] == offset + i:
+                self.defense.stop(self._defense_stop[1])
             actions.append(step["action"])
             applied.append(step["applied_policy_id"])
             if step["activated_policy"]:

@@ -1,12 +1,13 @@
 """SYNTHETIC flows: Agents 4 and 5, including the brief's ordering rules."""
-from backend.agents.defense_agent import ALLOW, BLOCK, DefenseConfig, DefenseLoop
+from backend.agents.defense_agent import ALLOW, BLOCK, DefenseConfig
 from backend.agents.temporal_agent import TemporalConfig
+from backend.replay.causal_replay import CausalReplayEngine
 
 
 def loop(**defense):
     settings = dict(min_attack_flows_multi_signal=3, min_attack_flows_classifier_only=5, min_attack_flows_converging=1,
                     min_attack_share=0.6, ttl_records=4, max_ttl_records=16, min_confidence=0.9)
-    return DefenseLoop(TemporalConfig(window_records=50, converging_min_sources=3), DefenseConfig(**{**settings, **defense}))
+    return CausalReplayEngine(TemporalConfig(window_records=50, converging_min_sources=3), DefenseConfig(**{**settings, **defense}))
 
 
 def attack(run, i, src="1.1.1.1", dst="9.9.9.9", status="MULTI_SIGNAL_ATTACK", cls="DOS", conf=0.99, port=80.0):
@@ -103,11 +104,14 @@ def test_converging_sources_lower_the_bar_for_a_new_source():
 def test_window_forgets_old_observations_and_a_gap_opens_a_new_group():
     run = loop(min_attack_flows_multi_signal=100, min_attack_flows_classifier_only=100, min_attack_flows_converging=100)
     attack(run, 0)
+    attack(run, 1)
     first = run.temporal.groups[0]["group_id"]
     attack(run, 100)
+    assert run.temporal.source_evidence("1.1.1.1")["flows_in_window"] == 1
+    attack(run, 101)
     groups = [g for g in run.temporal.groups if g["scope_type"] == "SOURCE_IP"]
     assert len(groups) == 2 and groups[0]["group_id"] == first
-    assert run.temporal.source_evidence("1.1.1.1")["flows_in_window"] == 1
+    assert groups[1]["member_record_ids"] == ["R100", "R101"]
 
 
 def test_port_scan_pattern_is_named_from_observed_ports():
@@ -125,8 +129,17 @@ def test_finish_closes_policies_still_active():
     run = loop(ttl_records=1000)
     for i in range(3):
         attack(run, i)
+    benign(run, 3)
+    run.finish(3, "R3")
+    assert run.defense.policies[0]["expires_after_record_id"] == "R3"
+
+
+def test_a_policy_activated_on_the_final_record_is_not_published():
+    run = loop(ttl_records=1000)
+    for i in range(3):
+        attack(run, i)
     run.finish(2, "R2")
-    assert run.defense.policies[0]["expires_after_record_id"] == "R2"
+    assert not run.defense.policies and run.defense.log[-1]["event"] == "DISCARDED_NO_LATER_RECORD"
 
 
 def test_missing_source_addresses_are_never_grouped_or_blocked():

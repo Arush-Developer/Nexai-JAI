@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Empty, Notice, Panel, TableWrap, Tag, fmt, pct, tdCls, thCls } from "../components/ui";
-import { useApi } from "../services/api";
-import type { DefenseState } from "../services/types";
+import { post, useApi } from "../services/api";
+import type { DefenseState, ReplayStatus } from "../services/types";
 
 /** Agent 5: temporary SOURCE_IP policies from the current replay. They only ever apply to later records. */
 export function AdaptiveDefense() {
   const { data, error } = useApi<DefenseState>("/defense", 2000);
+  const { data: replay } = useApi<ReplayStatus>("/replay/status", 2000);
   const [selected, setSelected] = useState<string | null>(null);
   if (error && !data) return <Notice tone="crit" title="Could not load Agent 5">{error}</Notice>;
   if (!data) return null;
@@ -16,9 +17,14 @@ export function AdaptiveDefense() {
       </Panel>
     );
   }
+  const stopDefense = () => { void post("/defense/stop", { reason: "operator STOP from Defence & Audit" }); };
   const chosen = data.policies.find((p) => p.policy_id === selected) ?? data.policies[data.policies.length - 1];
   return (
     <Panel title="Agent 5: adaptive defence" hint="Each policy starts after its triggering record and blocks only later flows from that source until it expires.">
+      <div className="flex items-center justify-between mb-3 text-xs text-text-2">
+        <span>{replay?.defense_stopped ? "STOP is on: no new policies. Active ones run to their recorded expiry." : "Agent 5 may activate new policies."}</span>
+        <button className="px-2 py-1 rounded border border-ink-700 hover:bg-ink-800 disabled:opacity-50" disabled={replay?.defense_stopped} onClick={stopDefense}>Stop new policies</button>
+      </div>
       {data.policies.length ? (
         <div className="grid xl:grid-cols-[1fr_340px] gap-4 items-start">
           <TableWrap>
@@ -54,7 +60,7 @@ export function AdaptiveDefense() {
         <details className="mt-3 text-xs">
           <summary className="cursor-pointer text-text-2">Activation and expiry log ({fmt(data.log.length)})</summary>
           <ul className="mt-2 space-y-1 max-h-48 overflow-y-auto num text-text-2">
-            {data.log.map((e) => <li key={`${e.policy_id}-${e.event}`}>{e.event} {e.policy_id} at {e.record_id} ({e.scope_value})</li>)}
+            {data.log.map((e) => <li key={`${e.policy_id}-${e.event}-${e.position}`}>{e.event} {e.policy_id} at {e.record_id} ({e.scope_value})</li>)}
           </ul>
         </details>
       )}

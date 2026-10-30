@@ -4,13 +4,13 @@
   "rows": 114185,
   "rule_violations": [],
   "policies": 164,
-  "correlation_groups": 2453,
-  "attack_flows_blocked_share": 0.9925808356710468,
+  "correlation_groups": 658,
+  "attack_flows_blocked_share": 0.992414734977115,
   "benign_flows_blocked_share": 0.005416576390393494,
   "benign_flows_blocked": 325,
   "attack_blocked_share_by_class": {
     "BRUTE_FORCE": 0.971820809248555,
-    "DDOS": 0.9784027777777777,
+    "DDOS": 0.9777777777777777,
     "DOS": 0.999125,
     "PORT_SCAN": 0.9978472222222222
   }

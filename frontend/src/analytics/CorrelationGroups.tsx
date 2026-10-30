@@ -12,17 +12,19 @@ export function CorrelationGroups() {
         <TableWrap>
           <div className="max-h-[320px] overflow-y-auto">
             <table className="w-full text-xs num">
-              <thead className="sticky top-0 bg-ink-850"><tr>{["Group", "Scope", "Members", "First", "Last", "Attack share", "Pattern", "Member records"].map((h) => <th key={h} className={thCls}>{h}</th>)}</tr></thead>
+              <thead className="sticky top-0 bg-ink-850"><tr>{["Group", "Scope", "Members", "Sources", "Destinations", "First observed", "Last observed", "Attack share", "Why grouped", "Member records"].map((h) => <th key={h} className={thCls}>{h}</th>)}</tr></thead>
               <tbody>
                 {data.groups.map((g) => (
                   <tr key={g.group_id}>
                     <td className={tdCls}>{g.group_id}</td>
                     <td className={tdCls}><Tag tone={g.scope_type === "DESTINATION_IP" ? "warn" : "neutral"}>{g.scope_type === "DESTINATION_IP" ? "dst" : "src"}</Tag> {g.scope_value}</td>
                     <td className={tdCls}>{fmt(g.member_count)}</td>
-                    <td className={tdCls}>{g.first_record_id}</td>
-                    <td className={tdCls}>{g.last_record_id}</td>
+                    <td className={tdCls}>{fmt(g.source_ips.length)}</td>
+                    <td className={tdCls}>{fmt(g.destination_ips.length)}</td>
+                    <td className={tdCls}>{g.first_observed}</td>
+                    <td className={tdCls}>{g.last_observed}</td>
                     <td className={tdCls}>{pct(g.evidence.attack_share, 0)}</td>
-                    <td className={`${tdCls} text-text-2`}>{g.evidence.pattern}</td>
+                    <td className={`${tdCls} text-text-2`} title={g.correlation_reason}>{g.evidence.pattern}</td>
                     <td className={`${tdCls} text-text-3`}>{g.member_record_ids.join(", ")}{g.member_count > g.member_record_ids.length ? ", …" : ""}</td>
                   </tr>
                 ))}

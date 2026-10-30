@@ -8,3 +8,4 @@ PY="${PY:-.venv/bin/python}"
 "$PY" scripts/calibrate_fusion.py
 "$PY" scripts/evaluate.py
 "$PY" scripts/rehearse_level2.py
+"$PY" scripts/tune_level2.py

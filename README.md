@@ -122,11 +122,25 @@ npm --prefix frontend run test:e2e
 E2E_REPLAY_INPUT="$PWD/data/processed/rehearsal/flows.parquet" npm --prefix frontend run test:e2e
 ```
 
-When the hidden set is released, write the three Level 2 files. This uploads nothing, and fails if the files break the brief's rules:
+When the hidden set is released, write the three Level 2 files. This uploads nothing, and fails if the replay order conflicts, or if the files break the brief's rules:
 
 ```bash
 .venv/bin/python scripts/run_level2.py --input PATH/TO/hidden.parquet --out-dir data/processed/level2
 ```
+
+Run the live Day 2 demonstration. Without `--input` it uses eval flows with invented endpoints, and says so:
+
+```bash
+.venv/bin/python scripts/demo_day2.py --pause 2
+```
+
+Re-check files already on disk:
+
+```bash
+.venv/bin/python scripts/validate_level2.py --input PATH/TO/hidden.parquet --out-dir data/processed/level2
+```
+
+Day 2 details: [architecture](docs/DAY2_ARCHITECTURE.md), [replay logic](docs/DAY2_REPLAY_LOGIC.md), [CSV schema](docs/DAY2_CSV_SCHEMA.md), [test report](docs/DAY2_TEST_REPORT.md), [viva guide](docs/TEAM_VIVA_GUIDE.md).
 
 Show that run on the website:
 
@@ -159,13 +173,14 @@ The layout and who owns each module are in [docs/TEAM_OWNERSHIP.md](docs/TEAM_OW
 - **Agent 3** ([fusion_agent.py](backend/agents/fusion_agent.py)): keeps evidence types separate instead
   of averaging them, and returns `final_class`, `evidence_status` and a rationale built from measured values.
 - **Agent 4** ([temporal_agent.py](backend/agents/temporal_agent.py)): groups suspicious flows by source, and
-  by destination when several sources converge, inside a sliding window of records it has already seen.
+  by destination when several sources converge, inside sliding windows of records it has already seen.
 - **Agent 5** ([defense_agent.py](backend/agents/defense_agent.py)): temporary simulated `SOURCE_IP` policies, based
   on repeated attack calls, Agent 2 support and attack share. Repeat offenders get longer policies.
 - **Campaign engine** ([campaign_engine.py](backend/intelligence/campaign_engine.py)): never reads labels or Agent 1's output.
 - **Investigation** ([investigation_orchestrator.py](backend/agents/investigation_orchestrator.py)):
   deterministic planner, eight registered tools, at most three actions per flow, with timeouts, cancellation and audit logging. No LLM is used.
 - **Policy** ([policy_engine.py](backend/policy/policy_engine.py)): configurable thresholds and a what-if mode.
+- **Causal replay** ([causal_replay.py](backend/replay/causal_replay.py)): the per-record state machine shared by the live replay and the CSV export.
 - **Replay** ([replay_engine.py](backend/replay/replay_engine.py)): real records in the supplied order and real batch
   inference, with a global stop. Its tools cannot see later records.
 - **Audit** ([audit.py](backend/investigation/audit.py)): every tool call, control action and policy change, saved to SQLite.
@@ -189,7 +204,8 @@ The layout and who owns each module are in [docs/TEAM_OWNERSHIP.md](docs/TEAM_OW
   as `VOLUMETRIC_CANDIDATE`, and record order standing in for time. Agents 4 and 5 are off.
 - **Agents 4 and 5, and endpoint-mode campaigns, are unmeasured on real endpoints.** They were tested on real
   flows with invented addresses. `data/reports/level2_rehearsal.json` proves the mechanism and the file rules. It
-  does not predict the hidden-set score, and their thresholds are engineering defaults, not tuned values.
+  does not predict the hidden-set score. Their thresholds were only compared on invented address layouts (`scripts/tune_level2.py`).
+- **Two Level 2 details are unconfirmed:** the `replay.csv` header and whether a policy's expiry record is itself blocked. Both are configurable. See [docs/DAY2_CSV_SCHEMA.md](docs/DAY2_CSV_SCHEMA.md).
 - **Level 1 submission is not done.** The API details are in the event WhatsApp group, not in this
   repository. See [docs/LEVEL1_SUMMARY.md](docs/LEVEL1_SUMMARY.md).
 - **Level 2 upload is not built.** No API details exist yet. The `replay.csv` columns and two column spellings are

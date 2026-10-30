@@ -95,8 +95,12 @@ Built one analysed flow at a time, from records already observed. Blocked flows 
 | `group_id` | `GRP-00001` |
 | `scope_type`, `scope_value` | `SOURCE_IP` or `DESTINATION_IP`, and the address |
 | `first_record_id`, `last_record_id` | First and latest member |
-| `member_record_ids`, `member_count` | Members. The API truncates the list; `agent4_agent5_evidence.json` keeps up to 5,000 per group |
-| `evidence` | `CorrelationEvidence`: flows in the window, confident attack flows, attack share, anomalous flows, dominant class, distinct destinations, ports and attacking sources, and the named pattern |
+| `member_record_ids`, `member_count` | Members, at least 2. The API truncates the list; `agent4_agent5_evidence.json` keeps up to 5,000 per group |
+| `source_ips`, `destination_ips`, `destination_ports` | Observed endpoints across members |
+| `first_observed`, `last_observed` | Timestamps when the input has them, otherwise record ids |
+| `supporting_evidence` | Up to 20 members' observed endpoints and A1 to A3 outputs |
+| `correlation_reason` | Plain explanation built from the measured evidence |
+| `evidence` | `CorrelationEvidence`: window limits, flows in the window, suspicious flows, confident attack flows, attack share, anomalous flows, dominant class, distinct destinations, ports and attacking sources, and the named pattern |
 
 ## Agent 5: `DefensePolicy`
 
@@ -105,13 +109,13 @@ Built one analysed flow at a time, from records already observed. Blocked flows 
 | `policy_id` | `POL-00001` |
 | `activated_after_record_id` | The triggering record. The policy applies only after it |
 | `scope_type`, `scope_value` | Always `SOURCE_IP`, and the address |
-| `expires_after_record_id` | Last record the policy covers. Null while active, because it is filled in when replay reaches that record |
+| `expires_after_record_id` | The policy's boundary record, filled in when replay reaches it. Whether it is itself blocked follows `level2.defense.expiry_boundary` |
 | `policy_action` | Always `BLOCK` |
 | `status`, `ttl_records`, `blocked_records` | `ACTIVE` or `EXPIRED`, length in records, flows blocked |
 | `group_id`, `converging_group_id` | The Agent 4 groups behind it |
 | `rationale`, `evidence` | Measured explanation, and the group evidence at activation |
 
-The order at each record is fixed in `DefenseLoop.step`: apply active policies; if not blocked, analyse and possibly activate for later records; then expire. Replay and the CSV export both use it, and read Agents 1 to 3 evidence only, so a fresh replay reproduces the files.
+The order at each record is fixed in `CausalReplayEngine.step` (`backend/replay/causal_replay.py`): apply active policies; if not blocked, analyse and possibly activate for later records; then expire. Replay and the CSV export both use it, and read Agents 1 to 3 evidence only, so a fresh replay reproduces the files.
 
 ## Level 2 files
 

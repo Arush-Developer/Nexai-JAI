@@ -144,7 +144,9 @@ export interface FlowDefense {
 
 export interface CorrelationEvidence {
   window_records: number;
+  window_seconds: number | null;
   flows_in_window: number;
+  suspicious_flows: number;
   confident_attack_flows: number;
   attack_share: number;
   anomalous_flows: number;
@@ -163,6 +165,13 @@ export interface CorrelationGroup {
   last_record_id: string;
   member_record_ids: string[];
   member_count: number;
+  source_ips: string[];
+  destination_ips: string[];
+  destination_ports: number[];
+  first_observed: string;
+  last_observed: string;
+  supporting_evidence: Record<string, unknown>[];
+  correlation_reason: string;
   evidence: CorrelationEvidence;
 }
 
@@ -242,6 +251,7 @@ export interface ReplayStatus {
   inference_flows_per_second: number | null;
   latest_seq: number;
   defense_available: boolean;
+  defense_stopped: boolean;
   active_policies: number;
   policies_activated: number;
   correlation_groups: number;

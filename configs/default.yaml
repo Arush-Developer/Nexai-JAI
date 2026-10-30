@@ -12,6 +12,8 @@ data:
   label_column: label
   # Absent from the participant pack; README says they ship with the hidden set.
   metadata_columns: [source_ip, destination_ip, source_port, destination_port, protocol, timestamp, seq]
+  # Other spellings the hidden file might use. Lower case, with spaces already turned into underscores.
+  metadata_aliases: {src_ip: source_ip, dst_ip: destination_ip, src_port: source_port, dst_port: destination_port, sequence: seq}
 
 models:
   threat: models/threat_model/threat_agent.joblib
@@ -29,11 +31,18 @@ labels:
     PORT_SCAN: PORT_SCAN
 
 # Level 2: Agents 4 and 5, and the three hidden-set CSVs. No endpoint data exists in the participant
-# pack, so these values are engineering defaults, not tuned results. Revisit once the hidden set's
-# metadata can be inspected, without using any labels. Rehearsal: scripts/rehearse_level2.py.
+# pack, so these thresholds were compared on synthetic address layouts only (scripts/tune_level2.py,
+# data/reports/level2_tuning.json). The best grid point beat these values by 0.0006 in the objective, at the
+# grid's aggressive edge, which is not enough to justify blocking more readily, so they were kept.
+# Revisit once the hidden set's metadata can be inspected, without using any labels.
 level2:
+  replay_order:
+    on_conflict: error  # error or report. See docs/DAY2_REPLAY_LOGIC.md before changing it on the day.
+    dayfirst: false  # Set true if the hidden timestamps turn out to be day/month/year.
   temporal:
     window_records: 2000
+    window_seconds: null  # Set once the hidden set's timestamps can be inspected.
+    min_group_members: 2
     scan_min_ports: 20
     converging_min_sources: 10
   defense:
@@ -44,6 +53,11 @@ level2:
     min_attack_share: 0.60
     ttl_records: 2000
     max_ttl_records: 16000
+    # inclusive: the record named by expires_after_record_id is still blocked. exclusive: it is not.
+    # Unconfirmed by the organisers. Confirm it, and set it here.
+    expiry_boundary: inclusive
+  # Set true once the organisers confirm the replay.csv header below. Until then every run prints a warning.
+  replay_schema_confirmed: false
   # The brief writes "anomaly score" and "evidence status", and its replay.csv row repeats the policy.csv
   # columns while its text names action and applied_policy_id. Confirm these against the organisers' API.
   columns:

@@ -9,11 +9,14 @@ import pandas as pd
 import pytest
 
 from backend.config import load_config, resolve
-from backend.preprocessing.data_processor import Partition, load_flows, replay_order
+from backend.preprocessing.data_processor import Partition, ReplayOrderError, load_flows, replay_order
 from backend.replay.replay_engine import ReplayEngine
 from backend.investigation.audit import AuditLog
 from backend.investigation.tools import find_related_flows, inspect_source_activity
-from backend.services.level2 import run_level2, validate_outputs, write_outputs
+from backend.agents.defense_agent import DefenseConfig
+from backend.services.level2 import (
+    check_prefix_invariance, read_outputs, replay_scored, run_level2, score_records, validate_outputs,
+    validate_submission, write_outputs)
 from backend.services.model_service import Pipeline
 from scripts.rehearse_level2 import synthetic_endpoints
 
@@ -80,9 +83,12 @@ def test_labels_in_the_input_do_not_change_anything(pipeline, flows, run, tmp_pa
     assert other["replay"].equals(run[1]["replay"]) and other["classification"].equals(run[1]["classification"])
 
 
-def test_supplied_seq_order_is_respected(pipeline, flows, run, tmp_path):
-    shuffled = flows.sample(frac=1, random_state=11)
-    other = run_level2(pipeline, as_partition(shuffled, tmp_path, "shuffled.parquet"))
+def test_file_order_conflicting_with_seq_is_refused_then_followed_only_when_reported(pipeline, flows, run, tmp_path):
+    shuffled = as_partition(flows.sample(frac=1, random_state=11), tmp_path, "shuffled.parquet")
+    with pytest.raises(ReplayOrderError, match="differs from the seq column"):
+        run_level2(pipeline, shuffled)
+    other = run_level2(pipeline, shuffled, on_order_conflict="report")
+    assert other["order_report"]["ambiguities"]
     assert other["replay"]["record_id"].tolist() == run[1]["replay"]["record_id"].tolist()
     assert other["replay"]["action"].tolist() == run[1]["replay"]["action"].tolist()
 
@@ -181,3 +187,97 @@ def test_partition_helper_keeps_endpoints_out_of_model_features(run):
     partition, _ = run
     assert isinstance(partition, Partition)
     assert not {"source_ip", "destination_ip", "seq"} & set(partition.features.columns)
+
+
+def test_every_blocked_record_keeps_its_independent_prediction(run):
+    _, result = run
+    blocked = result["replay"].loc[result["replay"]["action"] == "BLOCK", "record_id"]
+    assert len(blocked)
+    rows = result["classification"].set_index("record_id").loc[blocked]
+    assert rows["predicted_class"].notna().all() and rows["anomaly_score"].notna().all()
+    assert rows["evidence_status"].notna().all()
+    assert len(result["classification"]) == ROWS and result["classification"]["record_id"].is_unique
+
+
+def test_scoring_does_not_depend_on_other_records_in_the_batch(pipeline, flows, tmp_path, run):
+    """One record alone must score exactly as it does among thousands, so no batch-wide statistic is used."""
+    _, full = run
+    single = score_records(pipeline, as_partition(flows.iloc[[42]], tmp_path, "one.parquet")).classification.iloc[0]
+    assert single.equals(full["classification"].iloc[42])
+
+
+def test_replay_changes_nothing_in_classification(run):
+    _, result = run
+    before = result["scored"].classification.copy()
+    replay_scored(result["scored"])
+    assert result["scored"].classification.equals(before)
+
+
+def test_prefix_invariance_passes_on_a_real_run_and_detects_tampering(run):
+    _, result = run
+    assert not check_prefix_invariance(result["scored"], result)
+    tampered = {**result, "replay": result["replay"].assign(action="ALLOW", applied_policy_id="")}
+    assert any("causality" in p for p in check_prefix_invariance(result["scored"], tampered))
+
+
+def test_files_on_disk_pass_the_submission_check_and_tampered_files_do_not(run, flows, tmp_path):
+    _, result = run
+    input_path = tmp_path / "input.parquet"
+    flows.to_parquet(input_path, index=False)
+    write_outputs(result, tmp_path)
+    assert not validate_submission(tmp_path, input_path)
+    frames, problems = read_outputs(tmp_path)
+    assert not problems and set(frames) == {"classification", "policy", "replay"}
+    replay_path = tmp_path / "replay.csv"
+    lines = replay_path.read_text().splitlines()
+    replay_path.write_text("\n".join(lines[:-1]) + "\n")
+    assert any("does not cover every record" in p for p in validate_submission(tmp_path, input_path))
+    replay_path.write_text("wrong,header,here\n" + "\n".join(lines[1:]) + "\n")
+    assert any("header" in p for p in validate_submission(tmp_path, input_path))
+
+
+def test_exclusive_expiry_also_produces_valid_files_on_real_data(pipeline, run):
+    partition, _ = run
+    other = run_level2(pipeline, partition, defense=DefenseConfig(expiry_boundary="exclusive"))
+    meta = partition.metadata.iloc[replay_order(partition.metadata)]
+    assert not validate_outputs(other["classification"], other["policy"], other["replay"], meta["flow_id"],
+                                meta["source_ip"], "exclusive")
+    assert (other["replay"]["action"] == "BLOCK").any()
+
+
+def test_group_members_come_from_real_records_and_never_from_blocked_ones(run):
+    _, result = run
+    actions = dict(zip(result["replay"]["record_id"], result["replay"]["action"]))
+    position = {r: i for i, r in enumerate(result["replay"]["record_id"])}
+    for group in result["groups"]:
+        members = group["member_record_ids"]
+        assert all(actions[m] == "ALLOW" for m in members)
+        assert [position[m] for m in members] == sorted(position[m] for m in members)
+        assert len(members) >= 2
+    log = {e["policy_id"]: e for e in result["log"] if e["event"] == "ACTIVATED"}
+    for p in result["policies"]:
+        assert position[p["activated_after_record_id"]] == log[p["policy_id"]]["position"]
+        assert position[p["expires_after_record_id"]] > position[p["activated_after_record_id"]]
+
+
+def test_timestamped_input_flows_through_and_a_conflict_is_refused(pipeline, flows, tmp_path):
+    stamps = pd.date_range("2017-07-07 10:00:00", periods=500, freq="s").strftime("%Y-%m-%d %H:%M:%S")
+    clean = flows.iloc[:500].assign(timestamp=stamps)
+    result = run_level2(pipeline, as_partition(clean, tmp_path, "time.parquet"))
+    assert result["order_report"]["timestamps_checked"] and not result["order_report"]["ambiguities"]
+    assert "timestamp" not in result["scored"].features.columns
+    broken = clean.assign(timestamp=stamps[::-1])
+    with pytest.raises(ReplayOrderError, match="earlier than the record before"):
+        run_level2(pipeline, as_partition(broken, tmp_path, "back.parquet"))
+
+
+def test_stop_during_a_real_replay_prevents_later_activations(pipeline, run):
+    _, result = run
+    first = result["policy"]["activated_after_record_id"].iloc[0]
+
+    def stop_at_first_policy(i, step, engine):
+        if step["activated_policy"]:
+            engine.stop("test")
+
+    engine = replay_scored(result["scored"], on_step=stop_at_first_policy)
+    assert [p["activated_after_record_id"] for p in engine.defense.policies] == [first]

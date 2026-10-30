@@ -1,0 +1,128 @@
+{
+  "warning": "SYNTHETIC endpoints on real flows. Compares thresholds under invented address layouts only; not a prediction of hidden-set performance.",
+  "objective": "best worst-scenario value of attack_blocked - 5.0 * benign_blocked, on the first half of eval",
+  "grid_size": 81,
+  "chosen": {
+    "min_attack_flows_multi_signal": 2,
+    "min_attack_flows_classifier_only": 3,
+    "min_attack_share": 0.5,
+    "ttl_records": 2000
+  },
+  "chosen_tune": {
+    "per_class": {
+      "attack_blocked": 0.9882421901937798,
+      "benign_blocked": 0.005945176219295123,
+      "benign_blocked_flows": 167,
+      "policies": 157,
+      "groups": 452
+    },
+    "single_attacker": {
+      "attack_blocked": 0.996827804978967,
+      "benign_blocked": 0.01409754360982556,
+      "benign_blocked_flows": 396,
+      "policies": 6,
+      "groups": 315
+    }
+  },
+  "chosen_holdout": {
+    "per_class": {
+      "attack_blocked": 0.9990072273846399,
+      "benign_blocked": 0.0044812133746983795,
+      "benign_blocked_flows": 143,
+      "policies": 8,
+      "groups": 203
+    },
+    "single_attacker": {
+      "attack_blocked": 0.9994043364307839,
+      "benign_blocked": 0.01999310582557739,
+      "benign_blocked_flows": 638,
+      "policies": 6,
+      "groups": 188
+    }
+  },
+  "previous": {
+    "min_attack_flows_multi_signal": 3,
+    "min_attack_flows_classifier_only": 5,
+    "min_attack_share": 0.6,
+    "ttl_records": 2000
+  },
+  "previous_tune": {
+    "per_class": {
+      "attack_blocked": 0.9870353768705606,
+      "benign_blocked": 0.006443574225703097,
+      "benign_blocked_flows": 181,
+      "policies": 156,
+      "groups": 451
+    },
+    "single_attacker": {
+      "attack_blocked": 0.9953106682297772,
+      "benign_blocked": 0.013919544321822713,
+      "benign_blocked_flows": 391,
+      "policies": 6,
+      "groups": 315
+    }
+  },
+  "previous_holdout": {
+    "per_class": {
+      "attack_blocked": 0.9985704074338814,
+      "benign_blocked": 0.0045438876876312245,
+      "benign_blocked_flows": 145,
+      "policies": 8,
+      "groups": 203
+    },
+    "single_attacker": {
+      "attack_blocked": 0.9990072273846399,
+      "benign_blocked": 0.0198677571997117,
+      "benign_blocked_flows": 634,
+      "policies": 6,
+      "groups": 188
+    }
+  },
+  "top_5": [
+    {
+      "settings": {
+        "min_attack_flows_multi_signal": 2,
+        "min_attack_flows_classifier_only": 3,
+        "min_attack_share": 0.5,
+        "ttl_records": 2000
+      },
+      "worst_utility": 0.9263400869298392
+    },
+    {
+      "settings": {
+        "min_attack_flows_multi_signal": 3,
+        "min_attack_flows_classifier_only": 3,
+        "min_attack_share": 0.5,
+        "ttl_records": 2000
+      },
+      "worst_utility": 0.9262711261685124
+    },
+    {
+      "settings": {
+        "min_attack_flows_multi_signal": 2,
+        "min_attack_flows_classifier_only": 5,
+        "min_attack_share": 0.5,
+        "ttl_records": 2000
+      },
+      "worst_utility": 0.9261676850265221
+    },
+    {
+      "settings": {
+        "min_attack_flows_multi_signal": 3,
+        "min_attack_flows_classifier_only": 5,
+        "min_attack_share": 0.5,
+        "ttl_records": 2000
+      },
+      "worst_utility": 0.9261332046458588
+    },
+    {
+      "settings": {
+        "min_attack_flows_multi_signal": 5,
+        "min_attack_flows_classifier_only": 3,
+        "min_attack_share": 0.5,
+        "ttl_records": 2000
+      },
+      "worst_utility": 0.9260987242651953
+    }
+  ]
+}

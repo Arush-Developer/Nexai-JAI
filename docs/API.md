@@ -61,4 +61,6 @@ Threshold fields: `allow_benign_confidence`, `block_multi_signal_confidence`, `b
 |---|---|
 | `GET /defense?member_limit=25&group_limit=200` | Correlation groups, policies, the activation and expiry log, and the configuration. `available` is false, with a reason, when the replay input has no source addresses |
 
+| `POST /defense/stop` | STOP for Agent 5. No new policies until the next fresh replay; active ones run to their recorded expiry. Body: `{"reason": "..."}` |
+
 Replay events also include `policy` (activation), and each flow carries `defense_action` and `applied_policy_id`. To replay a file with endpoints, set `CYBERSENTINEL_REPLAY_INPUT=PATH` when starting the backend.

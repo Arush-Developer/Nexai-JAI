@@ -82,11 +82,9 @@ def test_unlabelled_file_is_accepted_and_port_metadata_is_recovered():
 
 
 @pytest.mark.parametrize("meta, expected", [
-    ({"flow_id": ["C3", "C1", "C2"], "seq": [2, 0, 1]}, [1, 2, 0]),
-    ({"flow_id": ["C3", "C1", "C2"]}, [1, 2, 0]),
-    ({"flow_id": ["a-x", "b-y", "c-z"]}, [0, 1, 2]),
-    ({"flow_id": ["C1", "C2"], "timestamp": ["2017-07-07 10:00:02", "2017-07-07 10:00:01"]}, [1, 0]),
+    ({"flow_id": ["C1", "C2", "C3"], "seq": [3, 1, 2]}, [1, 2, 0]),
+    ({"flow_id": ["C1", "C2"], "timestamp": ["2017-07-07 10:00:02", "2017-07-07 10:00:01"]}, [0, 1]),
+    ({"flow_id": ["C9", "C1"]}, [0, 1]),
 ])
-def test_replay_order_prefers_the_supplied_order(meta, expected):
+def test_replay_order_follows_seq_or_else_the_file_and_never_sorts_on_its_own(meta, expected):
     assert replay_order(pd.DataFrame(meta)).tolist() == expected
-

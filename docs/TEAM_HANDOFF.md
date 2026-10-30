@@ -2,7 +2,7 @@
 
 Every member must be able to explain their modules. Work through your section: read the code, run the commands, and be ready for the questions. Your own improvements go in as your own commits.
 
-Setup is in the [README](../README.md#quick-start). Exact file lists are in [TEAM_OWNERSHIP.md](TEAM_OWNERSHIP.md).
+Setup is in the [README](../README.md#quick-start). Exact file lists are in [TEAM_OWNERSHIP.md](TEAM_OWNERSHIP.md). **Day 2 changed who owns each agent: [TEAM_VIVA_GUIDE.md](TEAM_VIVA_GUIDE.md) supersedes the agent assignments in the sections below.**
 
 ## Git workflow
 
@@ -98,8 +98,9 @@ With the backend running, check by hand: Attack Intelligence shows the hypothesi
 
 ## New since the first handoff
 
-- **Arush:** explain `DefenseLoop.step` and why a flow can never be blocked by a policy its own evidence created. Explain why replay and the export read Agents 1 to 3 evidence only. Run `scripts/rehearse_level2.py`, then read `tests/integration/test_level2.py::test_future_records_cannot_change_earlier_decisions`.
-- **Arnav:** explain `TemporalCorrelationAgent`, what a group is, and why anomaly-only groups never create a policy. Why does a source need a 60% attack share?
+- **Arush:** explain `CausalReplayEngine.step` and why a flow can never be blocked by a policy its own evidence created. Explain why replay and the export read Agents 1 to 3 evidence only. Run `scripts/rehearse_level2.py`, then read `tests/integration/test_level2.py::test_future_records_cannot_change_earlier_decisions`.
+- **Arush:** explain `TemporalCorrelationAgent` and what a group is.
+- **Agrim:** explain why anomaly-only groups never create a policy. Why does a source need a 60% attack share?
 - **Agrim:** walk a judge from a policy on Defence & Audit to its group on Attack Intelligence and to a blocked flow in the Workbench.
 - **Lucky:** run `npm --prefix frontend run test:e2e`, then explain what each browser test proves, and what it doesn't.
 - **Everyone:** the panel will ask about false blocks. A shared source that mostly sends benign traffic is protected by the attack-share rule, but benign flows from a blocked source are still blocked while the policy is active. That is the containment trade-off.

@@ -28,8 +28,11 @@ from backend.services.model_service import Pipeline  # noqa: E402
 COLLATERAL_BENIGN_SHARE = 0.02
 
 
-def synthetic_endpoints(labels: pd.Series, seed: int = 7) -> pd.DataFrame:
-    """One attacker per class, except DDoS with 30 sources; 2% of benign flows share an attacker's address."""
+def synthetic_endpoints(labels: pd.Series, seed: int = 7, scenario: str = "per_class") -> pd.DataFrame:
+    """One attacker per class, except DDoS with 30 sources; 2% of benign flows share an attacker's address.
+
+    scenario "single_attacker" sends all attack traffic from one address, the published CICIDS2017 layout.
+    """
     rng = np.random.default_rng(seed)
     n = len(labels)
     benign_hosts = np.array([f"10.20.{i // 250}.{i % 250 + 1}" for i in range(400)])
@@ -38,6 +41,8 @@ def synthetic_endpoints(labels: pd.Series, seed: int = 7) -> pd.DataFrame:
     destination = rng.choice([f"192.0.2.{i}" for i in range(1, 41)], n).astype(object)
     attackers = {"BRUTE_FORCE": ["198.51.100.10"], "DOS": ["198.51.100.20"], "PORT_SCAN": ["198.51.100.30"],
                  "DDOS": [f"203.0.113.{i}" for i in range(1, 31)]}
+    if scenario == "single_attacker":
+        attackers = dict.fromkeys(attackers, ["198.51.100.99"])
     victims = {"BRUTE_FORCE": "192.0.2.100", "DOS": "192.0.2.101", "PORT_SCAN": "192.0.2.102", "DDOS": "192.0.2.103"}
     y = labels.to_numpy()
     for cls, hosts in attackers.items():
