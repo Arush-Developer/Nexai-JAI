@@ -1,0 +1,51 @@
+# CyberSentinel X configuration. Paths are relative to the repository root.
+data:
+  # The organisers' file is cyber-pack.zip; the brief's official_dataset.zip name is also accepted.
+  archive: data/raw/cyber-pack.zip
+  archive_alternate: data/raw/official_dataset.zip
+  extracted_dir: data/extracted
+  processed_dir: data/processed
+  reports_dir: data/reports
+  training_parquet: data/extracted/Cyber/training/flows.parquet
+  eval_parquet: data/extracted/Cyber/eval/flows.parquet
+  id_column: record_id
+  label_column: label
+  # Absent from the participant pack; README says they ship with the hidden set.
+  metadata_columns: [source_ip, destination_ip, source_port, destination_port, protocol, timestamp, seq]
+
+models:
+  threat: models/threat_model/threat_agent.joblib
+  anomaly: models/anomaly_model/anomaly_agent.joblib
+
+labels:
+  classes: [BENIGN, BRUTE_FORCE, DOS, DDOS, PORT_SCAN]
+  # The pack's labels are already the five benchmark classes (verified by the profiler),
+  # so the mapping is an explicit identity. Anything else is reported, never coerced.
+  mapping:
+    BENIGN: BENIGN
+    BRUTE_FORCE: BRUTE_FORCE
+    DOS: DOS
+    DDOS: DDOS
+    PORT_SCAN: PORT_SCAN
+
+# Level 2: Agents 4 and 5, and the three hidden-set CSVs. No endpoint data exists in the participant
+# pack, so these values are engineering defaults, not tuned results. Revisit once the hidden set's
+# metadata can be inspected, without using any labels. Rehearsal: scripts/rehearse_level2.py.
+level2:
+  temporal:
+    window_records: 2000
+    scan_min_ports: 20
+    converging_min_sources: 10
+  defense:
+    min_confidence: 0.90
+    min_attack_flows_multi_signal: 3
+    min_attack_flows_classifier_only: 5
+    min_attack_flows_converging: 2
+    min_attack_share: 0.60
+    ttl_records: 2000
+    max_ttl_records: 16000
+  # The brief writes "anomaly score" and "evidence status", and its replay.csv row repeats the policy.csv
+  # columns while its text names action and applied_policy_id. Confirm these against the organisers' API.
+  columns:
+    classification: {record_id: record_id, predicted_class: predicted_class, anomaly_score: anomaly_score, evidence_status: evidence_status}
+    replay: {record_id: record_id, action: action, applied_policy_id: applied_policy_id}
