@@ -155,6 +155,7 @@ class EvidenceGraph(BaseModel):
 
 
 class CorrelationEvidence(BaseModel):
+    window_basis: Literal["seconds", "records"]
     window_records: int
     window_seconds: float | None
     flows_in_window: int
@@ -318,3 +319,15 @@ class ReplayStatus(BaseModel):
     active_policies: int
     policies_activated: int
     correlation_groups: int
+
+
+class LocalInspectRequest(BaseModel):
+    """Data Manager. include lists data-file ids; None means every file in the upload."""
+
+    run_id: str
+    include: list[str] | None = None
+
+
+class LocalRunRequest(LocalInspectRequest):
+    on_order_conflict: Literal["error", "report"] | None = None
+    allow_duplicate: bool = False

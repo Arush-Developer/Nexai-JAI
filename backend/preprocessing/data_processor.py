@@ -39,7 +39,8 @@ def map_labels(raw: pd.Series) -> pd.Series:
 def standardise_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Strip stray whitespace, and accept "Source IP"-style spellings of the metadata columns."""
     cfg = load_config()["data"]
-    meta = {**{c.lower(): c for c in cfg["metadata_columns"]}, **cfg.get("metadata_aliases", {})}
+    meta = {**{c.lower(): c for c in (cfg["id_column"], cfg["label_column"], *cfg["metadata_columns"])},
+            **cfg.get("metadata_aliases", {})}
     renamed = {c: meta.get(c.strip().lower().replace(" ", "_"), c.strip()) for c in df.columns}
     # "Destination Port" stays a flow feature; it is copied into the metadata in split_representations.
     renamed = {c: c.strip() if c.strip() == PORT_FEATURE else new for c, new in renamed.items()}
@@ -128,11 +129,22 @@ def split_representations(df: pd.DataFrame) -> Partition:
     return Partition(features.reset_index(drop=True), metadata, labels)
 
 
+def read_flow_frame(path) -> pd.DataFrame:
+    """Read a CSV or Parquet flow file. Identifiers and addresses stay text, so 007 stays 007."""
+    path = Path(path)
+    if path.suffix.lower() != ".csv":
+        return pd.read_parquet(path)
+    cfg = load_config()["data"]
+    text = {cfg["id_column"], "source_ip", "destination_ip"}
+    names = standardise_columns(pd.read_csv(path, nrows=0))
+    raw = pd.read_csv(path, nrows=0).columns
+    dtype = {old: str for old, new in zip(raw, names.columns) if new in text}
+    return pd.read_csv(path, dtype=dtype, low_memory=False)
+
+
 def load_flows(path) -> Partition:
     """Load any flow file, labelled or not, such as the hidden set when it is released."""
-    path = Path(path)
-    frame = pd.read_csv(path) if path.suffix.lower() == ".csv" else pd.read_parquet(path)
-    return split_representations(frame)
+    return split_representations(read_flow_frame(path))
 
 
 def load_partition(which: str) -> Partition:

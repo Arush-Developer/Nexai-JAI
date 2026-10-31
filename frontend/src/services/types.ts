@@ -143,6 +143,7 @@ export interface FlowDefense {
 }
 
 export interface CorrelationEvidence {
+  window_basis: "seconds" | "records";
   window_records: number;
   window_seconds: number | null;
   flows_in_window: number;

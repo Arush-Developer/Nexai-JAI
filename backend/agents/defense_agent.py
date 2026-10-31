@@ -155,8 +155,9 @@ class AdaptiveDefenseAgent:
             f"Triggering flow: Agent 1 {predicted_class} at {confidence:.3f}, Agent 2 score {anomaly_score:.3f}, "
             f"evidence status {status}.",
             f"Agent 4 saw {evidence['confident_attack_flows']} confident attack flows among "
-            f"{evidence['flows_in_window']} analysed from this source in the last {evidence['window_records']} "
-            f"records ({evidence['attack_share']:.0%}); pattern: {evidence['pattern']}.",
+            f"{evidence['flows_in_window']} analysed from this source in the last "
+            f"{TemporalCorrelationAgent.window_label(evidence)} ({evidence['attack_share']:.0%}); "
+            f"pattern: {evidence['pattern']}.",
         ]
         if converging:
             parts.append(f"The destination is also in converging group {converging['group_id']}.")

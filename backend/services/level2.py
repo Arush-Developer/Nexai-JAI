@@ -98,24 +98,44 @@ class ScoredRecords:
         return len(self.classification)
 
 
-def score_records(pipeline, partition: Partition, on_order_conflict: str | None = None) -> ScoredRecords:
+def _score_in_order(pipeline, partition: Partition, on_order_conflict: str | None, on_agent=None) -> tuple:
+    """Agents 1-3 over every record in replay order. on_agent(agent, state) reports each stage as it really runs."""
+    notify = on_agent or (lambda agent, state: None)
+    settings = order_settings()
+    report = check_replay_order(partition.metadata, on_order_conflict or settings["on_conflict"], settings["dayfirst"])
+    order = replay_order(partition.metadata)
+    features = partition.features.iloc[order].reset_index(drop=True)
+    meta = partition.metadata.iloc[order].reset_index(drop=True)
+    notify("A1", "running")
+    proba = pipeline.threat.predict_proba(features)
+    notify("A1", "done")
+    notify("A2", "running")
+    scores = pipeline.anomaly.score(features)
+    notify("A2", "done")
+    notify("A3", "running")
+    fusion = pipeline.fuse_level1(proba, scores)
+    notify("A3", "done")
+    classification = pd.DataFrame({"record_id": meta["flow_id"].astype(str).tolist(),
+                                   "predicted_class": fusion.final_class, "anomaly_score": np.round(scores, 6),
+                                   "evidence_status": fusion.evidence_status})
+    return meta, features, order, report, scores, fusion, classification, settings
+
+
+def score_classification(pipeline, partition: Partition, on_order_conflict: str | None = None, on_agent=None) -> tuple:
+    """Agents 1-3 alone, for an input with no endpoints. Returns (classification, order report)."""
+    *_, report, _, _, classification, _ = _score_in_order(pipeline, partition, on_order_conflict, on_agent)
+    return classification, report
+
+
+def score_records(pipeline, partition: Partition, on_order_conflict: str | None = None, on_agent=None) -> ScoredRecords:
     """Independent per-record scoring. Labels are never read, even if the file carries them."""
-    meta = partition.metadata
-    missing = {"source_ip", "destination_ip"} - set(meta.columns)
+    missing = {"source_ip", "destination_ip"} - set(partition.metadata.columns)
     if missing:
         raise ValueError(f"Agents 4 and 5 need endpoint columns; missing: {sorted(missing)}")
-    settings = order_settings()
-    report = check_replay_order(meta, on_order_conflict or settings["on_conflict"], settings["dayfirst"])
-    order = replay_order(meta)
-    features = partition.features.iloc[order].reset_index(drop=True)
-    meta = meta.iloc[order].reset_index(drop=True)
-    proba, scores = pipeline.score(features)
-    fusion = pipeline.fuse_level1(proba, scores)
-    inputs = replay_inputs(meta, settings["dayfirst"])
-    classification = pd.DataFrame({"record_id": inputs["record_id"], "predicted_class": fusion.final_class,
-                                   "anomaly_score": np.round(scores, 6), "evidence_status": fusion.evidence_status})
-    return ScoredRecords(inputs, fusion.final_class, fusion.threat_confidence, scores, fusion.is_anomaly,
-                         fusion.evidence_status, classification, features, order, report)
+    meta, features, order, report, scores, fusion, classification, settings = _score_in_order(
+        pipeline, partition, on_order_conflict, on_agent)
+    return ScoredRecords(replay_inputs(meta, settings["dayfirst"]), fusion.final_class, fusion.threat_confidence, scores,
+                         fusion.is_anomaly, fusion.evidence_status, classification, features, order, report)
 
 
 def replay_scored(scored: ScoredRecords, temporal: TemporalConfig | None = None, defense: DefenseConfig | None = None,
@@ -182,26 +202,21 @@ def check_prefix_invariance(scored: ScoredRecords, result: dict, temporal: Tempo
     return problems
 
 
-def validate_outputs(classification: pd.DataFrame, policy: pd.DataFrame, replay: pd.DataFrame, record_ids,
-                     sources, expiry_boundary: str | None = None) -> list[str]:
-    """Check the brief's rules. Returns every problem found; an empty list means the files are consistent.
+def _coverage_problems(name: str, frame: pd.DataFrame, ids: list[str]) -> list[str]:
+    problems = []
+    got = frame["record_id"].astype(str)
+    if got.duplicated().any():
+        problems.append(f"{name}.csv repeats record ids")
+    if set(got) != set(ids):
+        problems.append(f"{name}.csv does not cover every record exactly once")
+    return problems
 
-    record_ids and sources must be in official replay order. Frames use the logical column names.
-    """
-    problems: list[str] = []
-    for name, frame in (("classification", classification), ("policy", policy), ("replay", replay)):
-        if list(frame.columns) != LOGICAL_COLUMNS[name]:
-            return [f"{name}.csv has columns {list(frame.columns)}, expected {LOGICAL_COLUMNS[name]}"]
-    boundary = expiry_boundary or defense_config().expiry_boundary
-    ids = [str(r) for r in record_ids]
-    position = {r: i for i, r in enumerate(ids)}
-    source_of = dict(zip(ids, map(str, sources)))
-    for name, frame in (("classification", classification), ("replay", replay)):
-        got = frame["record_id"].astype(str)
-        if got.duplicated().any():
-            problems.append(f"{name}.csv repeats record ids")
-        if set(got) != set(ids):
-            problems.append(f"{name}.csv does not cover every record exactly once")
+
+def validate_classification(classification: pd.DataFrame, record_ids) -> list[str]:
+    """The classification.csv rules alone. Also the whole check when an input has no endpoints."""
+    if list(classification.columns) != CLASSIFICATION_COLUMNS:
+        return [f"classification.csv has columns {list(classification.columns)}, expected {CLASSIFICATION_COLUMNS}"]
+    problems = _coverage_problems("classification", classification, [str(r) for r in record_ids])
     classes = set(load_config()["labels"]["classes"])
     if not set(classification["predicted_class"]) <= classes:
         problems.append("classification.csv has a class outside the five benchmark classes")
@@ -210,6 +225,23 @@ def validate_outputs(classification: pd.DataFrame, policy: pd.DataFrame, replay:
         problems.append("classification.csv has an anomaly_score that is missing or outside 0 to 1")
     if not set(classification["evidence_status"]) <= EVIDENCE_STATUSES:
         problems.append("classification.csv has an evidence_status Agent 3 does not produce")
+    return problems
+
+
+def validate_outputs(classification: pd.DataFrame, policy: pd.DataFrame, replay: pd.DataFrame, record_ids,
+                     sources, expiry_boundary: str | None = None) -> list[str]:
+    """Check the brief's rules. Returns every problem found; an empty list means the files are consistent.
+
+    record_ids and sources must be in official replay order. Frames use the logical column names.
+    """
+    for name, frame in (("classification", classification), ("policy", policy), ("replay", replay)):
+        if list(frame.columns) != LOGICAL_COLUMNS[name]:
+            return [f"{name}.csv has columns {list(frame.columns)}, expected {LOGICAL_COLUMNS[name]}"]
+    boundary = expiry_boundary or defense_config().expiry_boundary
+    ids = [str(r) for r in record_ids]
+    position = {r: i for i, r in enumerate(ids)}
+    source_of = dict(zip(ids, map(str, sources)))
+    problems = validate_classification(classification, ids) + _coverage_problems("replay", replay, ids)
     if policy["policy_id"].duplicated().any():
         problems.append("policy.csv repeats policy ids")
     if len(policy) and (set(policy["scope_type"]) != {"SOURCE_IP"} or set(policy["policy_action"]) != {BLOCK}):
@@ -277,10 +309,21 @@ def write_outputs(result: dict, out_dir: Path) -> dict[str, Path]:
     return paths
 
 
-def read_outputs(out_dir: Path) -> tuple[dict[str, pd.DataFrame], list[str]]:
-    """Read the three files as they would be submitted, and map them back to the logical column names."""
+def write_classification(classification: pd.DataFrame, out_dir: Path) -> Path:
+    """classification.csv alone, for an input with no endpoints. No replay or policy file is implied."""
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / "classification.csv"
+    classification[CLASSIFICATION_COLUMNS].rename(columns=csv_schema()["classification"]).to_csv(path, index=False)
+    return path
+
+
+def read_outputs(out_dir: Path, names: tuple[str, ...] | None = None) -> tuple[dict[str, pd.DataFrame], list[str]]:
+    """Read the files as they would be submitted, and map them back to the logical column names."""
     schema, frames, problems = csv_schema(), {}, []
     for name, columns in schema.items():
+        if names is not None and name not in names:
+            continue
         path = Path(out_dir) / f"{name}.csv"
         if not path.exists():
             problems.append(f"{name}.csv is missing")

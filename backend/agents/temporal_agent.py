@@ -2,7 +2,8 @@
 
 Strictly causal: observe() is called once per analysed flow in replay order, and a group only ever
 holds flows already seen. It reads Agents 1-3 output and endpoints, never labels or later records.
-Windows are counted in replay records and, when the input has timestamps, in seconds as well.
+When records carry timestamps and window_seconds is set, the window is measured in seconds. Otherwise it is
+a count of replay records, and the evidence says so: a record count is never presented as a time window.
 """
 from __future__ import annotations
 
@@ -21,8 +22,8 @@ class CausalityError(RuntimeError):
 
 @dataclass
 class TemporalConfig:
-    window_records: int = 2000
-    window_seconds: float | None = None  # Applies as well as window_records when records carry timestamps.
+    window_records: int = 2000  # Used only for records that have no timestamp to compare.
+    window_seconds: float | None = None  # Replaces window_records when both records being compared have timestamps.
     min_group_members: int = 2  # A single suspicious flow is not yet a correlation.
     scan_min_ports: int = 20
     converging_min_sources: int = 10
@@ -167,9 +168,9 @@ class TemporalCorrelationAgent:
 
     def _outside(self, position: int, timestamp: float | None, o: _Observation) -> bool:
         seconds = self.config.window_seconds
-        return (o.position - position >= self.config.window_records
-                or (seconds is not None and timestamp is not None and o.timestamp is not None
-                    and o.timestamp - timestamp > seconds))
+        if seconds is not None and timestamp is not None and o.timestamp is not None:
+            return o.timestamp - timestamp > seconds
+        return o.position - position >= self.config.window_records
 
     def _window(self, scope: str, value: str, o: _Observation) -> _Window:
         window = self._windows.setdefault((scope, value), _Window())
@@ -225,7 +226,10 @@ class TemporalCorrelationAgent:
     def _evidence(self, window: _Window) -> dict:
         dominant = window.classes.most_common(1)[0][0] if window.classes else None
         share = window.attack_flows / window.flows if window.flows else 0.0
+        timed = (self.config.window_seconds is not None and window.items
+                 and window.items[-1].timestamp is not None)
         return {
+            "window_basis": "seconds" if timed else "records",
             "window_records": self.config.window_records,
             "window_seconds": self.config.window_seconds,
             "flows_in_window": window.flows,
@@ -254,9 +258,15 @@ class TemporalCorrelationAgent:
         return "repeated suspicious flows from one source"
 
     @staticmethod
-    def _reason(group: dict) -> str:
+    def window_label(evidence: dict) -> str:
+        if evidence["window_basis"] == "seconds":
+            return f"{evidence['window_seconds']:g} seconds"
+        return f"{evidence['window_records']} records"
+
+    @classmethod
+    def _reason(cls, group: dict) -> str:
         e = group["evidence"]
-        limit = f"{e['window_records']} records" + (f" or {e['window_seconds']:g} s" if e["window_seconds"] else "")
+        limit = cls.window_label(e)
         called = f", mostly called {e['dominant_predicted_class']}" if e["dominant_predicted_class"] else ""
         return (f"{group['member_count']} suspicious flows on {group['scope_type']} {group['scope_value']}: "
                 f"{e['pattern']}. Last window of {limit}: {e['suspicious_flows']} suspicious of {e['flows_in_window']} "

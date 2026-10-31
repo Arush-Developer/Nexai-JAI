@@ -41,7 +41,9 @@ level2:
     dayfirst: false  # Set true if the hidden timestamps turn out to be day/month/year.
   temporal:
     window_records: 2000
-    window_seconds: null  # Set once the hidden set's timestamps can be inspected.
+    # Measured in seconds whenever a record has a timestamp; window_records is only for records without one.
+    # An engineering default, not a tuned value: the pack has no timestamps to tune on.
+    window_seconds: 300
     min_group_members: 2
     scan_min_ports: 20
     converging_min_sources: 10
@@ -56,6 +58,8 @@ level2:
     # inclusive: the record named by expires_after_record_id is still blocked. exclusive: it is not.
     # Unconfirmed by the organisers. Confirm it, and set it here.
     expiry_boundary: inclusive
+  # Set true once the organisers confirm it. Until then a run cannot be reported as ready to submit.
+  expiry_boundary_confirmed: false
   # Set true once the organisers confirm the replay.csv header below. Until then every run prints a warning.
   replay_schema_confirmed: false
   # The brief writes "anomaly score" and "evidence status", and its replay.csv row repeats the policy.csv
@@ -63,3 +67,13 @@ level2:
   columns:
     classification: {record_id: record_id, predicted_class: predicted_class, anomaly_score: anomaly_score, evidence_status: evidence_status}
     replay: {record_id: record_id, action: action, applied_policy_id: applied_policy_id}
+
+# The Data Manager. Everything stays on this machine, under these repository-relative folders.
+local_data:
+  staging_dir: data/staging
+  extracted_dir: data/extracted
+  outputs_dir: data/outputs
+  max_upload_bytes: 4294967296
+  max_extracted_bytes: 8589934592
+  max_compression_ratio: 200
+  max_archive_members: 2000

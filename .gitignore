@@ -2,6 +2,10 @@
 data/raw/
 data/extracted/
 data/processed/
+data/staging/
+data/outputs/
+data/inputs/
+data/day2/
 models/**/*.joblib
 .venv/
 __pycache__/
