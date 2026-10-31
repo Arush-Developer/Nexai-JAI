@@ -9,11 +9,11 @@
     "trials_tune": {
       "0.55": 1.0,
       "0.6": 1.0,
-      "0.7": 1.0,
-      "0.8": 1.0,
-      "0.9": 0.999734477683899,
-      "0.95": 0.9997058164121795,
-      "0.99": 0.9993929222501545
+      "0.7": 0.9997537734881131,
+      "0.8": 0.9997537734881131,
+      "0.9": 0.999488829098334,
+      "0.95": 0.9994601675182381,
+      "0.99": 0.9979815199266604
     },
     "best_threshold": 0.55,
     "macro_f1_gain_verify": 0.0,
@@ -25,19 +25,19 @@
       "target_precision": 0.999,
       "threshold": 0.9,
       "precision": 1.0,
-      "flows": 17130
+      "flows": 17144
     },
     "block_multi": {
       "target_precision": 0.995,
       "threshold": 0.9,
       "precision": 1.0,
-      "flows": 16287
+      "flows": 16292
     },
     "block_classifier_only": {
       "target_precision": 0.999,
-      "threshold": 0.99,
-      "precision": 1.0,
-      "flows": 3
+      "threshold": 0.999,
+      "precision": null,
+      "flows": 0
     }
   },
   "calibrated": {
@@ -48,7 +48,7 @@
     "policy": {
       "allow_benign_confidence": 0.9,
       "block_multi_signal_confidence": 0.9,
-      "block_classifier_only_confidence": 0.99
+      "block_classifier_only_confidence": 0.999
     }
   },
   "campaign_baseline": {

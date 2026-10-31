@@ -74,18 +74,18 @@
       "policy": {
         "counts": {
           "ALLOW": 59995,
-          "BLOCK": 54153,
-          "REVIEW": 37
+          "BLOCK": 54095,
+          "REVIEW": 95
         },
-        "attacks_blocked_rate": 0.9994278753875683,
+        "attacks_blocked_rate": 0.9983574486933412,
         "attacks_allowed_rate": 3.691126531817511e-05,
-        "attacks_reviewed_rate": 0.0005352133471135391,
+        "attacks_reviewed_rate": 0.001605640041340617,
         "benign_allowed_rate": 0.9998666688888519,
         "benign_blocked_rate": 0.0,
         "benign_reviewed_rate": 0.00013333111114814753
       },
-      "seconds": 0.043,
-      "latency_ms_per_1k_flows": 0.379
+      "seconds": 0.045,
+      "latency_ms_per_1k_flows": 0.39
     },
     "mode_b_with_anomaly_and_fusion": {
       "accuracy": 0.999964969129045,
@@ -172,8 +172,8 @@
         "benign_blocked_rate": 1.666638889351844e-05,
         "benign_reviewed_rate": 0.04963250612489792
       },
-      "seconds": 0.159,
-      "latency_ms_per_1k_flows": 1.395
+      "seconds": 0.153,
+      "latency_ms_per_1k_flows": 1.336
     },
     "mode_c_complete_system": {
       "accuracy": 0.999964969129045,
@@ -251,18 +251,18 @@
       "policy": {
         "counts": {
           "ALLOW": 53288,
-          "BLOCK": 54122,
-          "REVIEW": 6775
+          "BLOCK": 54089,
+          "REVIEW": 6808
         },
-        "attacks_blocked_rate": 0.9988557507751366,
+        "attacks_blocked_rate": 0.9982467148973867,
         "attacks_allowed_rate": 0.0,
-        "attacks_reviewed_rate": 0.0011442492248634284,
+        "attacks_reviewed_rate": 0.0017532851026133176,
         "benign_allowed_rate": 0.8881185313578107,
         "benign_blocked_rate": 0.0,
         "benign_reviewed_rate": 0.1118814686421893
       },
-      "seconds": 8.401,
-      "latency_ms_per_1k_flows": 73.576,
+      "seconds": 8.355,
+      "latency_ms_per_1k_flows": 73.175,
       "investigation_coverage": {
         "triggered": 60897,
         "investigated": 60897,
@@ -286,12 +286,12 @@
       "policy": {
         "counts": {
           "ALLOW": 53279,
-          "BLOCK": 54141,
-          "REVIEW": 6765
+          "BLOCK": 54138,
+          "REVIEW": 6768
         },
-        "attacks_blocked_rate": 0.9991879521630002,
+        "attacks_blocked_rate": 0.9991325852650229,
         "attacks_allowed_rate": 0.0,
-        "attacks_reviewed_rate": 0.0008120478369998523,
+        "attacks_reviewed_rate": 0.000867414734977115,
         "benign_allowed_rate": 0.8879685338577691,
         "benign_blocked_rate": 1.666638889351844e-05,
         "benign_reviewed_rate": 0.11201479975333745
@@ -299,8 +299,8 @@
       "campaigns": 7,
       "investigations_run": 575,
       "investigation_triggers": 60906,
-      "replay_analysis_flows_per_second": 109723.4,
-      "wall_seconds_at_requested_100k_flows_per_second": 2.47
+      "replay_analysis_flows_per_second": 47761.6,
+      "wall_seconds_at_requested_100k_flows_per_second": 4.06
     }
   },
   "labels_used_for": "scoring only; no model or threshold was tuned on this partition",
@@ -314,7 +314,7 @@
   "policy_thresholds": {
     "allow_benign_confidence": 0.9,
     "block_multi_signal_confidence": 0.9,
-    "block_classifier_only_confidence": 0.99
+    "block_classifier_only_confidence": 0.999
   },
   "agent1": {
     "rows": 114185,
@@ -767,12 +767,12 @@
       "policy": {
         "counts": {
           "ALLOW": 59995,
-          "BLOCK": 54153,
-          "REVIEW": 37
+          "BLOCK": 54095,
+          "REVIEW": 95
         },
-        "attacks_blocked_rate": 0.9994278753875683,
+        "attacks_blocked_rate": 0.9983574486933412,
         "attacks_allowed_rate": 3.691126531817511e-05,
-        "attacks_reviewed_rate": 0.0005352133471135391,
+        "attacks_reviewed_rate": 0.001605640041340617,
         "benign_allowed_rate": 0.9998666688888519,
         "benign_blocked_rate": 0.0,
         "benign_reviewed_rate": 0.00013333111114814753
@@ -818,12 +818,12 @@
       "policy": {
         "counts": {
           "ALLOW": 53288,
-          "BLOCK": 54122,
-          "REVIEW": 6775
+          "BLOCK": 54089,
+          "REVIEW": 6808
         },
-        "attacks_blocked_rate": 0.9988557507751366,
+        "attacks_blocked_rate": 0.9982467148973867,
         "attacks_allowed_rate": 0.0,
-        "attacks_reviewed_rate": 0.0011442492248634284,
+        "attacks_reviewed_rate": 0.0017532851026133176,
         "benign_allowed_rate": 0.8881185313578107,
         "benign_blocked_rate": 0.0,
         "benign_reviewed_rate": 0.1118814686421893
@@ -841,22 +841,22 @@
   "policy": {
     "counts": {
       "ALLOW": 53288,
-      "BLOCK": 54122,
-      "REVIEW": 6775
+      "BLOCK": 54089,
+      "REVIEW": 6808
     },
-    "attacks_blocked_rate": 0.9988557507751366,
+    "attacks_blocked_rate": 0.9982467148973867,
     "attacks_allowed_rate": 0.0,
-    "attacks_reviewed_rate": 0.0011442492248634284,
+    "attacks_reviewed_rate": 0.0017532851026133176,
     "benign_allowed_rate": 0.8881185313578107,
     "benign_blocked_rate": 0.0,
     "benign_reviewed_rate": 0.1118814686421893
   },
   "policy_rule_counts": {
-    "CONFIDENT_ATTACK_WITH_INDEPENDENT_SUPPORT": 54122,
+    "CONFIDENT_ATTACK_WITH_INDEPENDENT_SUPPORT": 54089,
     "CONFIDENT_BENIGN_NO_OTHER_SIGNAL": 53288,
-    "CAMPAIGN_ONLY_NEEDS_REVIEW": 4418,
-    "ANOMALY_ONLY_NEEDS_REVIEW": 2259,
-    "UNRESOLVED_CONFLICT": 98
+    "CAMPAIGN_ONLY_NEEDS_REVIEW": 4410,
+    "ANOMALY_ONLY_NEEDS_REVIEW": 2134,
+    "UNRESOLVED_CONFLICT": 264
   },
   "campaign_intelligence": {
     "mode": "cohort",
@@ -902,13 +902,13 @@
       "CONFLICTING": 8273,
       "SUPPORTS_BENIGN": 6
     },
-    "seconds": 7.88,
-    "conflicts_holding_decisions": 59
+    "seconds": 7.82,
+    "conflicts_holding_decisions": 225
   },
   "latency": {
-    "agent1_ms_per_1k_flows": 0.3792303367279267,
-    "agent2_ms_per_1k_flows": 1.0158485440374432,
-    "scoring_campaign_fusion_policy_flows_per_second": 219026.96668262576,
-    "investigation_seconds": 7.88
+    "agent1_ms_per_1k_flows": 0.38984469939795247,
+    "agent2_ms_per_1k_flows": 0.945806147918082,
+    "scoring_campaign_fusion_policy_flows_per_second": 213241.77548049422,
+    "investigation_seconds": 7.82
   }
 }

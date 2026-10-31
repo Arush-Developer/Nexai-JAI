@@ -85,7 +85,12 @@ def main() -> None:
         rows.append({"settings": dict(zip(GRID, values)), "worst_utility": min(utility(m) for m in scores.values()),
                      "tune": scores})
     rows.sort(key=lambda r: -r["worst_utility"])
-    best, current = rows[0], next(r for r in rows if all(r["settings"][k] == getattr(base, k) for k in GRID))
+    best = rows[0]
+    # The settings in use may sit outside this grid, after a change made on purpose. Report them as they are.
+    current = next((r for r in rows if all(r["settings"][k] == getattr(base, k) for k in GRID)), None)
+    if current is None:
+        current = {"settings": {k: getattr(base, k) for k in GRID}, "worst_utility": None, "tune": None,
+                   "note": "outside the grid, so not scored by this run"}
     report = {
         "warning": "SYNTHETIC endpoints on real flows. Compares thresholds under invented address layouts only; "
                    "not a prediction of hidden-set performance.",
