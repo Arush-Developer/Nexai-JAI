@@ -207,7 +207,7 @@ class FeaturePipeline:
         missing = [c for c in self.columns_ if c not in X]
         if missing:
             raise ValueError(f"input is missing required feature columns: {missing}")
-        values = X[self.columns_].to_numpy(dtype=np.float64)
+        values = X[self.columns_].to_numpy(dtype=np.float64, copy=True)
         values[~np.isfinite(values)] = np.nan
         return values
 
