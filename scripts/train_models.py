@@ -148,14 +148,22 @@ def main() -> None:
     report["calibration_study"] = study
     report["preprocessing"] = {"threat_dropped": pipeline.dropped_, "threat_features": len(pipeline.columns_)}
     report["feature_importance"] = agent.feature_importance(25)
-    agent.save(threat_path)
     print("calibration", study, flush=True)
+
+    # 4b. The saved model learns from every training row. The temperature was measured on data unseen by the model above,
+    #     and the eval partition is still unread, so scripts/evaluate.py remains a fair test.
+    final_pipeline = FeaturePipeline(exclude=exclude).fit(features)
+    final_model = fit_model(make_candidates(SEED)[best], final_pipeline.transform(features), y)
+    final = ThreatAgent(final_model, final_pipeline, classes, f"{best}-all_training-seed{SEED}-{'port' if use_port else 'noport'}")
+    final.temperature, final.calibration_status = agent.temperature, agent.calibration_status
+    report["final_model_rows"] = len(features)
+    final.save(threat_path)
 
     # 5. Agent 2: benign-only fit, percentile references from unseen benign calibration flows.
     benign_fit = splits.fit[y[splits.fit] == "BENIGN"]
     benign_cal = splits.calibration[y[splits.calibration] == "BENIGN"]
     anomaly = AnomalyAgent.train(features.iloc[benign_fit], seed=SEED,
-                                 model_version=f"iforest-benign-seed{SEED}")
+                                 model_version=f"benign-only-seed{SEED}")
     target_fpr = 0.05
     anomaly.calibrate(features.iloc[benign_cal], target_fpr)
     sel = features.iloc[splits.selection]
@@ -164,6 +172,7 @@ def main() -> None:
     detectors = {name: anomaly_report(is_attack, s, s >= anomaly.threshold) for name, s in scores.items()}
     best_detector = max(detectors, key=lambda d: detectors[d]["pr_auc"])
     anomaly.detector = best_detector
+    anomaly.model_version = f"{best_detector}-benign-seed{SEED}"
     chosen_scores = scores[best_detector]
     report["anomaly"] = {
         "benign_fit_rows": len(benign_fit), "benign_calibration_rows": len(benign_cal),
