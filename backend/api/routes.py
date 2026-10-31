@@ -71,9 +71,18 @@ def analyse(request: Request, body: AnalyseFlowRequest):
 
 
 @router.get("/flows/{flow_id}", response_model=FlowDetail)
-def flow(request: Request, flow_id: str):
+def flow(request: Request, flow_id: str, investigate: bool = True):
+    """investigate=false reads what is known without starting a new investigation, for a screen that polls."""
     try:
-        return state_of(request).flow_detail(flow_id)
+        return state_of(request).flow_detail(flow_id, investigate)
+    except KeyError as exc:
+        raise HTTPException(404, f"unknown flow {flow_id}") from exc
+
+
+@router.get("/flows/{flow_id}/features")
+def flow_features(request: Request, flow_id: str):
+    try:
+        return state_of(request).flow_features(flow_id)
     except KeyError as exc:
         raise HTTPException(404, f"unknown flow {flow_id}") from exc
 

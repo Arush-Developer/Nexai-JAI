@@ -83,3 +83,14 @@ def test_agent3_output_carries_confidence_status_and_references(client):
     assert fusion["confidence_status"] in ("CONFIDENT", "LOW_CONFIDENCE")
     assert f"flow:{item['flow_id']}" in fusion["evidence_refs"]
 
+
+def test_a_flow_can_be_read_without_starting_an_investigation_and_has_its_real_features(client, app_state):
+    flow_id = client.get("/api/flows?scope=historical&disagree=true&limit=1").json()["items"][0]["flow_id"]
+    app_state.analysis.investigations.pop(flow_id, None)
+    assert client.get(f"/api/flows/{flow_id}?investigate=false").json()["investigation"] is None
+    assert flow_id not in app_state.analysis.investigations
+    features = client.get(f"/api/flows/{flow_id}/features").json()
+    row = app_state.flow_row(flow_id)
+    assert features["Flow Duration"] == float(app_state.analysis.partition.features["Flow Duration"].iat[row])
+    assert client.get("/api/flows/NOPE/features").status_code == 404
+

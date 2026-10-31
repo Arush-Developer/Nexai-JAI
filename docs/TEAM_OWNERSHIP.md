@@ -96,6 +96,7 @@ Modules outside the five agents stay with whoever held them on Day 1. `docs/TEAM
 | `frontend/e2e/app.spec.ts`, `frontend/playwright.config.ts` | Browser tests, shared with Agrim |
 | `frontend/src/app/`, `frontend/src/main.tsx` | App, routes |
 | `frontend/src/components/` | `Layout`, `Sidebar`, `Navbar`, `AgentStatus`, shared `ui.tsx` |
+| `frontend/src/command/` | The 3D Command Centre: `AgentScene` (robots and room), `useAgentFocus` (which agent is working), `AgentStage`, `HudPanels` |
 | `frontend/src/pages/CommandCenter.tsx` | Command Centre |
 | `frontend/src/replay/` | `ReplayLab`, `ReplayControls`, `ReplayTimeline`, `LiveFlowFeed` |
 | `frontend/src/styles/`, `frontend/tailwind.config.js`, `frontend/vite.config.ts` | Styling, build |

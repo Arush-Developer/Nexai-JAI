@@ -14,11 +14,11 @@ export function Layout({ children }: { children: ReactNode }) {
   const ready = health.data?.status === "ok";
   const standalone = useLocation().pathname === "/data";
   return (
-    <div className="h-full md:flex">
-      <Sidebar />
-      <div className="flex-1 min-w-0 h-full flex flex-col">
-        <Navbar ready={ready} />
-        <main className="flex-1 min-h-0 overflow-y-auto">
+    <div className="h-full flex flex-col">
+      <Navbar ready={ready} />
+      <div className="flex-1 min-h-0 flex flex-col md:flex-row">
+        <Sidebar ready={ready} detail={health.data?.detail ?? null} />
+        <main className="flex-1 min-w-0 min-h-0 overflow-y-auto">
           {health.error && (
             <div className="p-4"><Notice tone="crit" title="Backend unreachable">{health.error}. Start it with uvicorn on port 8000.</Notice></div>
           )}

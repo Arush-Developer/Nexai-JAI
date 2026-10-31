@@ -148,3 +148,91 @@ test("agents 4 and 5 report their real state", async ({ page, request }) => {
     await expect(page.getByText(`${hit.applied_policy_id}`).first()).toBeVisible();
   }
 });
+
+test("the orchestrator turns to face each agent as it works, from real replay events", async ({ page, request }) => {
+  await page.setViewportSize({ width: 1536, height: 1024 });
+  const errors = watchErrors(page);
+  const status = await (await request.get("/api/replay/status")).json();
+  if (status.status === "running" || status.status === "paused") await request.post("/api/replay/stop");
+  await page.goto("/command");
+  await expect(page).toHaveTitle("CyberSentinel by NexAI");
+  await expect(page.getByText("by NexAI", { exact: true })).toBeVisible();
+  const stage = page.getByTestId("agent-stage");
+  await expect(stage).toHaveAttribute("data-yaw", /.+/, { timeout: 20_000 });
+  await expect(stage).toHaveAttribute("data-focus", "none");
+  await page.getByRole("button", { name: "Start replay" }).click();
+
+  const expected = (await (await request.get("/api/replay/status")).json()).defense_available ? ["A1", "A2", "A3", "A4", "A5"] : ["A1", "A2", "A3"];
+  const facing = new Set<string>();
+  let shot = false;
+  const signs: Record<string, number> = {};
+  await expect(async () => {
+    // Read together: the focus moves on between separate reads.
+    const now = await stage.evaluate((el) => ({ ...(el as HTMLElement).dataset }));
+    if (now.focus && now.focus !== "none") {
+      signs[now.focus] = Number(now.yawTarget);
+      if (Math.abs(Number(now.yaw) - Number(now.yawTarget)) < 0.2) {
+        facing.add(now.focus);
+        if (now.focus === "A5" && !shot) {
+          shot = true;
+          await page.screenshot({ path: "../docs/images/command-centre.png" });
+        }
+      }
+    }
+    expect([...facing].sort()).toEqual(expected);
+  }).toPass({ timeout: 60_000, intervals: [100] });
+
+  // Left-hand agents are a turn one way and right-hand agents the other, so it really is looking at them.
+  expect(signs.A1).toBeLessThan(0);
+  if (expected.includes("A5")) expect(signs.A5).toBeGreaterThan(0);
+  await expect(page.getByTestId("stage-A1")).toContainText(/\d+%/);
+  await expect(page.getByTestId("agent-trace")).toContainText(/Anomalous|Normal/);
+
+  await page.getByRole("button", { name: "Stop replay" }).click();
+  await expect(stage).toHaveAttribute("data-focus", "none", { timeout: 10_000 });
+  await page.getByRole("button", { name: /^Show record / }).last().click();
+  await expect.poll(() => stage.getAttribute("data-focus"), { timeout: 5_000 }).toBe("A1");
+  expect(errors).toEqual([]);
+});
+
+test("without WebGL the screen explains itself, and the agents' state is still in the panels", async ({ page }) => {
+  await page.addInitScript(() => {
+    const real = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, kind: string, ...rest: unknown[]) {
+      return kind.startsWith("webgl") ? null : (real as (...a: unknown[]) => unknown).call(this, kind, ...rest);
+    } as typeof real;
+  });
+  await page.goto("/command");
+  await expect(page.getByText("3D view is unavailable in this browser")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId("agent-trace")).toBeVisible();
+});
+
+test("the Command Centre fits a phone with no sideways scroll", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/command");
+  await expect(page.getByTestId("agent-stage")).toHaveAttribute("data-yaw", /.+/, { timeout: 20_000 });
+  const overflow = await page.evaluate(() => [document.documentElement.scrollWidth - innerWidth, document.querySelector("main")!.scrollWidth - document.querySelector("main")!.clientWidth]);
+  expect(overflow).toEqual([0, 0]);
+  await expect(page.getByRole("button", { name: "STOP", exact: true })).toBeInViewport();
+  await expect(page.getByText("by NexAI", { exact: true })).toBeInViewport();
+  // The scene must really be drawn: a black canvas once passed every other check here.
+  await page.waitForTimeout(500);
+  const picture = (await page.getByTestId("agent-stage").screenshot()).toString("base64");
+  const brightness = await page.evaluate(async (png) => {
+    const image = new Image();
+    image.src = `data:image/png;base64,${png}`;
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = image.width;
+    canvas.height = image.height;
+    const context = canvas.getContext("2d")!;
+    context.drawImage(image, 0, 0);
+    const { data } = context.getImageData(0, Math.floor(image.height * 0.3), image.width, Math.floor(image.height * 0.6));
+    let total = 0;
+    for (let i = 0; i < data.length; i += 4) total += data[i] + data[i + 1] + data[i + 2];
+    return total / (data.length / 4) / 3;
+  }, picture);
+  expect(brightness).toBeGreaterThan(8);
+  await page.screenshot({ path: "../data/processed/e2e-artifacts/command-phone.png" });
+});
+

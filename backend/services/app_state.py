@@ -144,6 +144,10 @@ class AppState:
         detail["evidence_graph"] = build_evidence_graph(detail)
         return detail
 
+    def flow_features(self, flow_id: str) -> dict:
+        """The record's measured flow features, exactly as supplied."""
+        return plain(self.analysis.partition.features.iloc[self.flow_row(flow_id)].to_dict())
+
     def _flow_replay(self, flow_id: str) -> dict | None:
         position = self.replay.position_of(flow_id)
         frame = self.replay.replayed_frame()

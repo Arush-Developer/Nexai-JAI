@@ -332,9 +332,10 @@ class ReplayEngine:
         if self.defense is None:
             out["defense_action"] = None
             out["applied_policy_id"] = None
+            out["correlation_group_id"] = None
             return {}
         offset = self._processed_rows()
-        actions, applied, created = [], [], {}
+        actions, applied, grouped, created = [], [], [], {}
         # Agents 1-3 alone, as in the export, so a fresh replay reproduces the submitted files exactly.
         proba = out[[f"proba_{c}" for c in self.pipeline.threat.classes]].to_numpy()
         status = self.pipeline.fuse_level1(proba, out["anomaly_score"].to_numpy()).evidence_status
@@ -351,10 +352,12 @@ class ReplayEngine:
                 self.defense.stop(self._defense_stop[1])
             actions.append(step["action"])
             applied.append(step["applied_policy_id"])
+            grouped.append(step["group"]["group_id"] if step["group"] else None)
             if step["activated_policy"]:
                 created[i] = step["activated_policy"]
         out["defense_action"] = actions
         out["applied_policy_id"] = applied
+        out["correlation_group_id"] = grouped
         if offset + len(out) >= self._target():
             self.defense.finish(offset + len(out) - 1, str(out["flow_id"].iat[-1]))
         return created
@@ -412,6 +415,7 @@ class ReplayEngine:
                 "policy_decision": r.policy_decision, "policy_rule": r.policy_rule,
                 "campaign_id": r.campaign_id, "investigation_triggered": bool(triggered[i + j]),
                 "defense_action": r.defense_action, "applied_policy_id": r.applied_policy_id or None,
+                "correlation_group_id": r.correlation_group_id or None,
                 "ground_truth_evaluation_only": str(truth[i + j]) if truth is not None else None,
             } for j, r in enumerate(shown.itertuples(index=False))]
             self._emit("flows", cursor=cursor, total=self._target(), flows=flows, flows_in_chunk=len(part),

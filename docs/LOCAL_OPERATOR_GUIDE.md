@@ -76,7 +76,7 @@ npm --prefix frontend run dev -- --host 127.0.0.1 --port 5173 --strictPort
 
 ### 5. Open the website
 
-Go to **http://localhost:5173/data** in Chrome. The other screens show the official validation set, and need the dataset extracted. The Data Manager does not.
+Go to **http://localhost:5173/data** in Chrome. In the side menu, this screen is called **Dataset**. The other screens show the official validation set, and need the dataset extracted. The Data Manager does not.
 
 ### 6 to 8. Choose your input
 

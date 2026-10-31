@@ -322,6 +322,7 @@ export interface ReplayFlowEvent {
   investigation_triggered: boolean;
   defense_action: "ALLOW" | "BLOCK" | null;
   applied_policy_id: string | null;
+  correlation_group_id: string | null;
   ground_truth_evaluation_only: string | null;
 }
 export interface CampaignEvent { seq: number; action: string; campaign: CampaignRecord }

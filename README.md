@@ -62,7 +62,7 @@ full detail is in `data/reports/evaluation_report.json`.
 
 ## Technology stack
 
-- **Frontend:** React, TypeScript, Vite, Tailwind CSS, Recharts, React Flow, Lucide
+- **Frontend:** React, TypeScript, Vite, Tailwind CSS, three.js, Recharts, React Flow, Lucide
 - **Backend:** Python, FastAPI, Pydantic
 - **ML:** CatBoost, scikit-learn, pandas, NumPy, PyArrow
 
@@ -223,7 +223,7 @@ The layout and who owns each module are in [docs/TEAM_OWNERSHIP.md](docs/TEAM_OW
 
 - **AI assistance:** this codebase was generated with Claude Code (Anthropic) from the team's engineering brief. Each team member must still review, test and understand their modules: see [docs/TEAM_HANDOFF.md](docs/TEAM_HANDOFF.md).
 - **Data:** organiser-provided CICIDS2017 pack only. Unit tests use synthetic fixtures, labelled as such.
-- **Third-party components:** scikit-learn, CatBoost, pandas, NumPy, PyArrow, FastAPI, Uvicorn, Pydantic, React, Vite, Tailwind CSS, Recharts, React Flow (`@xyflow/react`), Lucide, Playwright (tests only).
+- **Third-party components:** scikit-learn, CatBoost, pandas, NumPy, PyArrow, FastAPI, Uvicorn, Pydantic, React, Vite, Tailwind CSS, three.js, Recharts, React Flow (`@xyflow/react`), Lucide, Playwright (tests only).
 - **Synthetic data:** `scripts/rehearse_level2.py` and its tests attach invented addresses to real eval flows, and are labelled as such. No mock or hard-coded prediction is used anywhere.
 - **Credentials:** none are stored. The submission adapter reads any token from an environment variable.
 

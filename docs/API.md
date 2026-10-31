@@ -20,7 +20,8 @@ All decisions are simulated. While models load, data endpoints return 503 and `/
 | Method and path | Purpose |
 |---|---|
 | `GET /flows` | Paged results. Params: `scope`, `offset`, `limit` (up to 500), `decision`, `final_class`, `evidence_status`, `disagree`, `campaign_id`, `search` |
-| `GET /flows/{flow_id}` | Agent outputs, fusion rationale, policy, campaign, investigation and evidence graph. Runs an investigation if a trigger fired and none exists yet. Labels appear only as `ground_truth_evaluation_only` |
+| `GET /flows/{flow_id}` | Agent outputs, fusion rationale, policy, campaign, investigation and evidence graph. Runs an investigation if a trigger fired and none exists yet, unless `investigate=false`. Labels appear only as `ground_truth_evaluation_only` |
+| `GET /flows/{flow_id}/features` | The record's measured flow features, as supplied |
 | `POST /flows/analyse` | Body `{"features": {name: value}}`. Runs Agents 1 to 3 and policy on one flow, with no cross-flow context. Returns 422 if a required feature is missing |
 
 ## Campaigns, incidents, investigations
