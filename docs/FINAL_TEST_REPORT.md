@@ -8,7 +8,7 @@ The hidden set ran end to end through the website. It has no labels here, so its
 
 | Suite | Command | Result |
 |---|---|---|
-| Backend, with real models and data | `.venv/bin/python -m pytest` | **299 passed, 0 failed, 0 skipped** |
+| Backend, with real models and data | `.venv/bin/python -m pytest` | **300 passed, 0 failed, 0 skipped** |
 | Data Manager in Chrome, with the real hidden file | `E2E_HIDDEN=<folder> E2E_SHOTS=<folder> npx playwright test e2e/data-manager.spec.ts`, from `frontend/` | **4 passed**, 1 skipped (it needs the mode below) |
 | Data Manager with no copy of the dataset | `E2E_NO_DATASET=1 CYBERSENTINEL_CONFIG=<config with no eval file> npx playwright test e2e/data-manager.spec.ts` | **1 passed**, 4 skipped (they need the dataset) |
 | All other screens, including the 3D Command Centre | `E2E_REPLAY_INPUT="$PWD/../data/processed/rehearsal/flows.parquet" npx playwright test e2e/app.spec.ts` | **17 passed** |
@@ -20,7 +20,7 @@ The hidden set ran end to end through the website. It has no labels here, so its
 | Area | Status | Evidence |
 |---|---|---|
 | A1, A2 and A3 on labelled records | PASS | Macro-F1 0.99990 on 114,185 records |
-| A1 to A5 on the hidden set | PASS | 200 records, 1 group, 1 policy, 98 blocks, 0 rule violations |
+| A1 to A5 on the hidden set | PASS | 200 records, 1 group, 1 policy, 99 blocks, 0 rule violations |
 | A4 and A5 accuracy on real endpoints | BLOCKED | The labelled pack has no endpoints, and the hidden set has no labels |
 | Policy activation and expiry | PASS on synthetic data | `tests/replay/test_day2_causal_replay.py`. On the hidden set, the policy's expiry is the end of the file |
 | Chronological replay | PASS | The same input gives byte-identical files. Rerunning on parts of the stream changes no earlier decision |

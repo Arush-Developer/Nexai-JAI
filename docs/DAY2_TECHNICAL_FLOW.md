@@ -109,7 +109,7 @@ Run the tests from the repository root, with `.venv/bin/python -m pytest` before
 - **Entry points:** `begin_record`, `apply_active`, `consider`, `advance`, `finish`, `public_policies`
 - **Input:** A3 and A4 evidence for the current record
 - **Output:** temporary simulated `SOURCE_IP` `BLOCK` policies, with `policy_id`, `activated_after_record_id`, `scope_type`, `scope_value`, `expires_after_record_id`
-- **Policy criteria:** A1 confidence at least 0.90, not `UNCERTAIN`, an A4 group, at least 50% of the source's window being attacks, and 2 confident attacks with A2 support or when converging, or 3 with A1 alone
+- **Policy criteria:** A1 confidence at least 0.90, not `UNCERTAIN`, an A4 group, at least 50% of the source's window being attacks, and 1 confident attack with A2 support, 2 when converging, or 3 with A1 alone
 - **Duration:** 2,000 replay positions, doubling for repeats, up to 16,000. Expiry uses positions, then converts to the real record ID. Record ID numbers are never subtracted
 - **Tests:** `tests/agents/test_temporal_defense.py tests/replay/test_day2_causal_replay.py`
 

@@ -34,7 +34,7 @@ A record with a missing source address is allowed and not analysed, because miss
 
 ## Agent 4 groups
 
-A flow is suspicious if A1 calls an attack, A2 flags it, or A3 reports `UNCERTAIN`. A group forms when a source's window holds `min_group_members` (2) suspicious flows, with those earlier flows as its first members. A destination forms a group when `converging_min_sources` (10) different sources make confident attack calls on it inside the window.
+A flow is suspicious if A1 calls an attack, A2 flags it, or A3 reports `UNCERTAIN`. A group forms when a source's window holds `min_group_members` (2) suspicious flows, with those earlier flows as its first members, or on one flow that A1 and A2 both call an attack at high confidence (`group_on_one_agreed_attack`). A destination forms a group when `converging_min_sources` (10) different sources make confident attack calls on it inside the window.
 
 When a record has a timestamp, a flow leaves a window after `window_seconds` (3600, set from the hidden file's timing, because the labelled pack has no timestamps to test it on). Only a record with no timestamp falls back to `window_records` (2,000), and the evidence's `window_basis` then says `records`, so a record count is never described as a time window. A gap longer than the window starts a new group.
 
@@ -45,7 +45,7 @@ All of these must hold on the triggering record:
 - A1 calls an attack, at `min_confidence` (0.90) or above, and A3 does not say `UNCERTAIN`.
 - The source has no active policy, and STOP has not been requested.
 - A4 has a group for this source or destination.
-- The source's window has enough confident attack flows: 2 if A2 also flagged this flow or the destination is a converging group, 3 if only A1 did.
+- The source's window has enough confident attack flows: 1 if A2 also flagged this flow, 2 if the destination is a converging group, 3 if only A1 did.
 - At least `min_attack_share` (50%) of the source's analysed flows in the window are confident attacks. This protects shared addresses.
 
 Anomaly-only evidence never creates a policy, because A2 flags about 5% of benign flows by design.

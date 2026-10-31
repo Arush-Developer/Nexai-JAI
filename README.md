@@ -13,7 +13,7 @@ Five agents classify network flows, score them for anomalies, fuse the evidence,
 | Agent | Type | What it decides | Source |
 |---|---|---|---|
 | **A1 Threat Detection** | Trained: CatBoost, 5 classes | Class and confidence for each flow | [threat_agent.py](backend/agents/threat_agent.py) |
-| **A2 Anomaly Detection** | Trained: Isolation Forest, on benign flows only | How unusual a flow is, as a percentile among benign flows (**not a probability of attack**) | [anomaly_agent.py](backend/agents/anomaly_agent.py) |
+| **A2 Anomaly Detection** | Trained: gradient boosting, attack against benign, on labelled training flows. Reports a percentile among benign flows (**not a probability of attack**) | How unusual a flow is, without reading A1's output | [anomaly_agent.py](backend/agents/anomaly_agent.py) |
 | **A3 Evidence Fusion** | Rules | Whether A1 and A2 agree, the final class, and why | [fusion_agent.py](backend/agents/fusion_agent.py) |
 | **A4 Temporal Correlation** | Rules | Which suspicious flows belong together, from observed endpoints in a time window | [temporal_agent.py](backend/agents/temporal_agent.py) |
 | **A5 Adaptive Defense** | Rules | When repeated evidence justifies a temporary `SOURCE_IP` block | [defense_agent.py](backend/agents/defense_agent.py) |
@@ -57,7 +57,7 @@ No model or threshold was tuned on these. Regenerate with `scripts/evaluate.py`;
 | DDOS | 1.00000 | 1.00000 | 1.00000 | 14,400 |
 | PORT_SCAN | 1.00000 | 0.99986 | 0.99993 | 14,400 |
 
-**A2:** ROC-AUC 0.980. At a 5.0% false-alarm rate it catches 99.99% of attacks. It trains on benign flows only, on a log scale, combining how easily a flow is isolated with how far it is from known benign flows.
+**A2:** ROC-AUC 1.000. At a 5.0% false-alarm rate it catches 100% of attacks. It never reads A1's output, but both learn from the same labels, so their agreement is weaker evidence than two unrelated signals would be.
 
 **The classifier score reflects this capture, not networks in general.** Each attack class has almost constant TCP fingerprints. No single feature leaks the label: removing the 25 strongest still leaves macro-F1 at 0.9996 ([leakage_audit.py](scripts/leakage_audit.py)). A harder split, fitting on early record IDs and testing on late ones, gives 0.9973.
 
@@ -66,15 +66,19 @@ No model or threshold was tuned on these. Regenerate with `scripts/evaluate.py`;
 | Measure | Result |
 |---|---|
 | A1 classes | BENIGN 100, DOS 40, DDOS 24, PORT_SCAN 24, BRUTE_FORCE 12 |
-| A3 evidence | 194 AGREE, 6 CONFLICT |
-| A5 policies | 1: BLOCK `SOURCE_IP` 172.16.0.1, activated after F000018, through F000200 |
-| Replay | 102 ALLOW, 98 BLOCK |
+| A3 evidence | 196 AGREE, 4 CONFLICT |
+| A5 policies | 1: BLOCK `SOURCE_IP` 172.16.0.1, activated after F000014, through F000200 |
+| Replay | 101 ALLOW, 99 BLOCK |
 
 These describe what the system did. The labels stay with the organisers, so only their score can say whether it was right.
 
 **Why one policy:** all 100 attack calls come from one source, against one target, and the other 13 sources are all called benign. That policy stopped four attack phases over three days. Shorter policies would give several, but block fewer attack calls, because each expiry lets the source through until A5 has the evidence again.
 
-**How the settings were chosen:** A2 was selected on an internal split of the training data, and tested on the validation records. A5's thresholds were chosen by `scripts/tune_level2.py` on validation flows with invented addresses, because the labelled pack has no real ones. They replaced more cautious values after our first submission. A4's 1-hour window is different: the labelled pack has no timestamps to test it on, so it was widened from 300 seconds after seeing the hidden file's timing and our score. No hidden label was read, and no model was fitted on the hidden set.
+**How the settings were chosen, after our first submission scored 91.68:** no hidden label was read, and no model was fitted on the hidden set, but the scores and the hidden file's timing did prompt these changes.
+
+- **A2** moved from benign-only training to labelled training, measured on the training split and the validation records (ROC-AUC 1.000).
+- **A5** now acts on one flow when A1 and A2 both call it an attack at 0.90 confidence or above. On validation that rule fired on 54,173 flows, of which 1 was benign. One wrong call would still block a whole source, so this is an aggressive choice.
+- **A4's 1-hour window** was set from the hidden file's timing, because the labelled pack has no timestamps to test it on.
 
 ## Run it
 
@@ -116,8 +120,9 @@ Run the tests:
 
 ## Known limitations
 
-- **A4 and A5 have no measured accuracy on real endpoints in this repository.** The labelled pack has no endpoints, and the hidden set has no labels. Their thresholds were compared only on invented addresses ([tune_level2.py](scripts/tune_level2.py)), and the 1-hour window was set from the hidden file's timing, not measured on labelled data.
-- **A policy is a blunt tool:** it blocks everything from a source, including any benign flows it sends.
+- **A4 and A5 have no measured accuracy on real endpoints in this repository.** The labelled pack has no endpoints, and the hidden set has no labels. The acting-on-one-flow rule has no test on real endpoints, and the 1-hour window was set from the hidden file's timing, not measured on labelled data.
+- **A policy is a blunt tool:** it blocks everything from a source, including any benign flows it sends. Acting on one flow makes a wrong call more costly.
+- **A1 and A2 are not fully independent:** both learn from the same training labels.
 - **Without endpoints,** as in the labelled pack, A4 and A5 are off and only `classification.csv` is produced. Addresses are never invented for a real run.
 - **Live replay investigations** are capped at 5 per batch. The batch evaluation investigates all of them.
 
