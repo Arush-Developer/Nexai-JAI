@@ -31,7 +31,7 @@ async def lifespan(app: FastAPI):
         app.state.cs.replay.stop()
 
 
-app = FastAPI(title="CyberSentinel X", version="0.1.0",
+app = FastAPI(title="CyberSentinel by NexAI", version="0.1.0",
               description="Offline multi-agent intrusion analysis. All ALLOW/BLOCK/REVIEW decisions are simulated.",
               lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],

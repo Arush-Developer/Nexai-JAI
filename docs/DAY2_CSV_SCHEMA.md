@@ -1,8 +1,8 @@
-# Day 2 CSV schema
+# CSV schema
 
-`scripts/run_level2.py` writes these files, then reads them back from disk and checks them.
+The three files the organisers' stage page requires. `scripts/run_level2.py` and the Data Manager write them, read them back from disk, and check them.
 
-## classification.csv (exact columns from the brief)
+## classification.csv
 
 ```
 record_id,predicted_class,anomaly_score,evidence_status
@@ -13,65 +13,55 @@ record_id,predicted_class,anomaly_score,evidence_status
 | `record_id` | Every hidden record exactly once, including records later blocked |
 | `predicted_class` | `BENIGN`, `BRUTE_FORCE`, `DOS`, `DDOS` or `PORT_SCAN` |
 | `anomaly_score` | A2's score, 0 to 1. A percentile among benign calibration flows, not a probability |
-| `evidence_status` | A3's: `AGREED_BENIGN`, `MULTI_SIGNAL_ATTACK`, `CLASSIFIER_ONLY`, `ANOMALY_ONLY` or `UNCERTAIN` |
+| `evidence_status` | `AGREE`, `CONFLICT` or `UNCERTAIN` |
 
-## policy.csv (exact columns from the brief)
+A3 keeps finer statuses on the website, mapped in `level2.evidence_status_values`:
+
+| A3 status | Meaning | In the file |
+|---|---|---|
+| `AGREED_BENIGN` | A1 says benign, and A2 finds it normal | `AGREE` |
+| `MULTI_SIGNAL_ATTACK` | A1 calls an attack, and A2 flags it | `AGREE` |
+| `CLASSIFIER_ONLY` | A1 calls an attack, but A2 finds it normal | `CONFLICT` |
+| `ANOMALY_ONLY` | A1 says benign, but A2 flags it | `CONFLICT` |
+| `UNCERTAIN` | A1's confidence is below the threshold | `UNCERTAIN` |
+
+## replay.csv
 
 ```
-policy_id,activated_after_record_id,scope_type,scope_value,expires_after_record_id,policy_action
+record_id,action,active_policy_id
+```
+
+| Column | Rule |
+|---|---|
+| `record_id` | Every hidden record exactly once |
+| `action` | `ALLOW` or `BLOCK` |
+| `active_policy_id` | For BLOCK, the smallest matching policy id. For ALLOW, `NONE` |
+
+## policies.csv
+
+```
+policy_id,activated_after_record_id,scope_type,scope_value,expires_after_record_id
 ```
 
 | Column | Rule |
 |---|---|
 | `policy_id` | Unique. Format `POL-00001` |
-| `activated_after_record_id` | The triggering record, an organiser id. Its own action is ALLOW |
-| `scope_type` | Always `SOURCE_IP` |
-| `scope_value` | The triggering record's source address |
-| `expires_after_record_id` | A later organiser id. See the boundary convention in [DAY2_REPLAY_LOGIC.md](DAY2_REPLAY_LOGIC.md) |
-| `policy_action` | Always `BLOCK` |
+| `activated_after_record_id` | The triggering record. The policy starts on the next record, and the trigger itself stays ALLOW |
+| `scope_type` | `SOURCE_IP`. The organisers also allow `DESTINATION_IP` and `SRC_DST_PAIR`, which this system does not use |
+| `scope_value` | The exact source address observed on the triggering record |
+| `expires_after_record_id` | The last active record, inclusive |
 
-## replay.csv (PROVISIONAL header)
+## Checks
 
-```
-record_id,action,applied_policy_id
-```
-
-**The semantics come from the brief. The header does not: it is our placeholder and has not been confirmed. Arush must confirm it with the organisers.**
-
-When it is confirmed, change only `configs/default.yaml`, and set the flag so the warning stops:
-
-```yaml
-level2:
-  replay_schema_confirmed: true
-  columns:
-    replay: {record_id: <official>, action: <official>, applied_policy_id: <official>}
-```
-
-`classification` can be renamed the same way. Internal code keeps its own names, and `read_outputs` maps the file back before checking it.
-
-| Meaning | Rule |
+| Check | Where |
 |---|---|
-| Record | Every hidden record exactly once, in replay order |
-| Action | `ALLOW` or `BLOCK` |
-| Applied policy | A valid active policy on BLOCK; empty on ALLOW |
+| Exact headers and values | `read_outputs`, `stage_page_problems` |
+| One row per record in `classification.csv` and `replay.csv` | `validate_outputs`, `stage_page_problems` |
+| Every `replay.csv` row equals what the organisers' published algorithm recomputes from `policies.csv` | `stage_page_problems` |
+| No flow from a blocked source escaped an active policy | `validate_outputs` |
+| No future record influenced an earlier decision | `check_prefix_invariance` |
+| No label was used | `replace(partition, labels=None)` before scoring. `test_labels_in_the_input_do_not_change_anything` holds it to that |
 
-## Checks before submitting
+All are in `backend/services/level2.py`. The organisers' own validator is the final word.
 
-`scripts/validate_level2.py` runs these on files already on disk. `scripts/run_level2.py` runs them after writing, and adds check 9.
-
-| # | Requirement | Where |
-|---|---|---|
-| 1 | Every record once in `classification.csv` | `validate_outputs` |
-| 2 | Every record once in `replay.csv` | `validate_outputs` |
-| 3 | All classes in the five | `validate_outputs` |
-| 4 | Every BLOCK references an existing policy | `validate_outputs` |
-| 5 | Policy activated before the blocked record | `validate_outputs` |
-| 6 | Policy scope matches the blocked source | `validate_outputs` |
-| 7 | Policy had not expired | `validate_outputs`, using the configured boundary |
-| 8 | Every ALLOW has an empty policy id | `validate_outputs` |
-| 9 | No future record influenced an earlier decision | `check_prefix_invariance`, `run_level2.py` only, because it needs the agents' output |
-| 10 | No hidden labels used | By construction: `run_level2` strips labels before scoring. `test_labels_in_the_input_do_not_change_anything` holds it to that |
-
-It also checks the exact header, score range, A3 status values, repeated policy ids, unsupported scope or action, that no blocked record triggered a policy, and that no matching record escaped an active policy.
-
-`agent4_agent5_evidence.json` is written beside the CSVs. It holds groups, policies, the log and final state, and is not a submission file.
+`agent4_agent5_evidence.json` is written beside the CSVs. It holds groups, policies, the activation and expiry log, and final state, and is not a submission file.

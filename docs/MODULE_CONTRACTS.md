@@ -122,10 +122,10 @@ The order at each record is fixed in `CausalReplayEngine.step` (`backend/replay/
 | File | Columns |
 |---|---|
 | `classification.csv` | `record_id`, `predicted_class`, `anomaly_score`, `evidence_status`, one row per record, including blocked flows |
-| `policy.csv` | `policy_id`, `activated_after_record_id`, `scope_type`, `scope_value`, `expires_after_record_id`, `policy_action` |
-| `replay.csv` | `record_id`, `action`, `applied_policy_id`, one row per record. `applied_policy_id` is empty on ALLOW |
+| `policies.csv` | `policy_id`, `activated_after_record_id`, `scope_type`, `scope_value`, `expires_after_record_id` |
+| `replay.csv` | `record_id`, `action`, `active_policy_id`, one row per record. `active_policy_id` is `NONE` on ALLOW |
 
-The brief's table repeats the policy columns for `replay.csv`, while its text names `action` and `applied_policy_id`. **These replay columns and the snake_case spelling of `anomaly_score` and `evidence_status` are inferred; confirm them with the organisers.** They can be renamed in `configs/default.yaml` under `level2.columns` without code changes.
+These follow the organisers' stage page. See [DAY2_CSV_SCHEMA.md](DAY2_CSV_SCHEMA.md).
 
 ## Policy: `PolicyOutcome`
 

@@ -10,7 +10,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const FIXTURE = resolve(ROOT, "data/processed/local_fixture");
-const SHOTS = resolve(ROOT, "docs/images");
+const SHOTS = resolve(ROOT, "data/processed/e2e-artifacts");
 const noDataset = !!process.env.E2E_NO_DATASET;
 
 test.describe.configure({ mode: "serial" });

@@ -1,4 +1,4 @@
-"""Build a SYNTHETIC hidden-style input for testing the Data Manager, because the real hidden set is not released.
+"""Build a SYNTHETIC hidden-style input for testing the Data Manager, without needing the organisers' hidden set.
 
 The flow features are real official eval records. The endpoints and timestamps are INVENTED, from documentation
 address ranges, so this proves the mechanism and nothing about hidden-set performance. Addresses come from each

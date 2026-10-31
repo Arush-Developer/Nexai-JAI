@@ -1,4 +1,4 @@
-# Day 2 technical flow
+# Technical flow
 
 How a file a person picks in Chrome becomes the three Day 2 CSVs, and which code does each step.
 
@@ -26,7 +26,7 @@ OPERATION B: one record at a time, in supplied order (CausalReplayEngine.step)
     v
 Prefix check: rerun on 25%, 50% and 75% of the stream. Any changed earlier decision means a future record leaked in.
     v
-data/outputs/<RUN>/   classification.csv, policy.csv, replay.csv, run_summary.json, validation_report.json, ...
+data/outputs/<RUN>/   classification.csv, policies.csv, replay.csv, run_summary.json, validation_report.json, ...
     |  read back from disk and checked against the input
     v
 Chrome   CHOOSE OUTPUT FOLDER, then createWritable() for each file, then its size is read back
@@ -59,10 +59,10 @@ All in `configs/default.yaml`.
 | Setting | Now | Status |
 |---|---|---|
 | `level2.temporal.window_seconds` | 300 | Engineering default. No real timestamps exist to tune it on |
-| `level2.defense.expiry_boundary` | `inclusive` | Unconfirmed by the organisers |
-| `level2.expiry_boundary_confirmed` | `false` | Set true once confirmed |
-| `level2.columns.replay` | `record_id, action, applied_policy_id` | Unconfirmed by the organisers |
-| `level2.replay_schema_confirmed` | `false` | Set true once confirmed |
+| `level2.defense.expiry_boundary` | `inclusive` | Confirmed by the organisers' stage page |
+| `level2.expiry_boundary_confirmed` | `true` | Confirmed |
+| `level2.columns.replay` | `record_id, action, active_policy_id` | From the organisers' template |
+| `level2.replay_schema_confirmed` | `true` | Confirmed |
 | `level2.replay_order.dayfirst` | `false` | Check it against the real timestamps |
 
 ## Each member's part
@@ -91,7 +91,7 @@ Run the tests from the repository root, with `.venv/bin/python -m pytest` before
 - **Files:** `backend/agents/fusion_agent.py`, `frontend/src/data-manager/DataManager.tsx`, `frontend/src/services/localData.ts`
 - **Entry points:** `fuse_batch(proba, classes, scores, threshold, config)`, `fusion_output(...)`, `DataManager()`, `exportRun(...)`
 - **Input:** A1 probabilities and A2 scores, which are never averaged together
-- **Output:** `final_class`, `evidence_status`, rationale. `classification.csv` uses five statuses. `CAMPAIGN_ONLY` and `CAMPAIGN_CORROBORATED` are for the website only
+- **Output:** `final_class`, `evidence_status`, rationale. `classification.csv` reports them as `AGREE`, `CONFLICT` or `UNCERTAIN`. `CAMPAIGN_ONLY` and `CAMPAIGN_CORROBORATED` are for the website only
 - **Tests:** `tests/agents/test_fusion.py`, and `npx playwright test e2e/data-manager.spec.ts` from `frontend/`
 
 ### Arush: A4 Temporal Correlation, replay integration and the local-data backend
@@ -108,7 +108,7 @@ Run the tests from the repository root, with `.venv/bin/python -m pytest` before
 - **Files:** `backend/agents/defense_agent.py`
 - **Entry points:** `begin_record`, `apply_active`, `consider`, `advance`, `finish`, `public_policies`
 - **Input:** A3 and A4 evidence for the current record
-- **Output:** temporary simulated `SOURCE_IP` `BLOCK` policies, with `policy_id`, `activated_after_record_id`, `scope_type`, `scope_value`, `expires_after_record_id`, `policy_action`
+- **Output:** temporary simulated `SOURCE_IP` `BLOCK` policies, with `policy_id`, `activated_after_record_id`, `scope_type`, `scope_value`, `expires_after_record_id`
 - **Policy criteria:** A1 confidence at least 0.90, not `UNCERTAIN`, an A4 group, at least 60% of the source's window being attacks, and 2 confident attacks when converging, 3 with A2 support, or 5 with A1 alone
 - **Duration:** 2,000 replay positions, doubling for repeats, up to 16,000. Expiry uses positions, then converts to the real record ID. Record ID numbers are never subtracted
 - **Tests:** `tests/agents/test_temporal_defense.py tests/replay/test_day2_causal_replay.py`

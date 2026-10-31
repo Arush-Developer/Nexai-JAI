@@ -176,7 +176,7 @@ test("the orchestrator turns to face each agent as it works, from real replay ev
         facing.add(now.focus);
         if (now.focus === "A5" && !shot) {
           shot = true;
-          await page.screenshot({ path: "../docs/images/command-centre.png" });
+          await page.screenshot({ path: "../data/processed/e2e-artifacts/command-centre.png" });
         }
       }
     }

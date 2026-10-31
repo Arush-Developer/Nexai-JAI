@@ -1,10 +1,10 @@
-# Day 2 replay logic
+# Replay logic
 
-The rules the replay follows, where each is enforced, and the decisions still waiting on the organisers.
+The rules the replay follows, and where each is enforced.
 
 ## Before the first record
 
-`check_replay_order` decides the order and looks for conflicts. `seq` is authoritative when present, because the pack's README says it ships with the hidden set. Otherwise file order is. Timestamps and record ids never reorder anything.
+`check_replay_order` decides the order and looks for conflicts. `seq` is authoritative when present, as the organisers' README states. Otherwise file order is. Timestamps and record ids never reorder anything.
 
 | Finding | Result |
 |---|---|
@@ -13,7 +13,7 @@ The rules the replay follows, where each is enforced, and the decisions still wa
 | A timestamp earlier than the record before it | Conflict |
 | An unreadable timestamp | Conflict |
 
-A conflict stops the run by default. Passing `--on-order-conflict report` continues, follows `seq`, and prints each ambiguity. **Use it only after asking the organisers.** Non-monotonic timestamps then run on a clock that never goes backwards, so an old observation cannot re-enter a window.
+A conflict stops the run by default. Passing `--on-order-conflict report` continues, follows `seq`, and prints each ambiguity. Non-monotonic timestamps then run on a clock that never goes backwards, so an old observation cannot re-enter a window.
 
 ## At each record
 
@@ -21,8 +21,8 @@ This is `CausalReplayEngine.step`.
 
 1. **Name the expiry.** If this record is a policy's boundary, its `expires_after_record_id` is set now. Under the exclusive convention the policy also ends now.
 2. **Check active policies first.** Match the record's source against active `SOURCE_IP` policies.
-3. **If one matches:** action BLOCK, `applied_policy_id` is that policy. A4 and A5 do not see this record, so it cannot add evidence or trigger anything.
-4. **If none matches:** action ALLOW, `applied_policy_id` empty. A4 updates its windows and groups. A5 decides whether the evidence now justifies a policy.
+3. **If one matches:** action BLOCK, `active_policy_id` is that policy. A4 and A5 do not see this record, so it cannot add evidence or trigger anything.
+4. **If none matches:** action ALLOW, `active_policy_id` is `NONE`. A4 updates its windows and groups. A5 decides whether the evidence now justifies a policy.
 5. **If A5 activates:** the policy covers later records only. This record stays ALLOW, and earlier actions are never revisited.
 6. **Expire.** Under the inclusive convention, a policy whose boundary is this record ends now.
 
@@ -54,14 +54,14 @@ Anomaly-only evidence never creates a policy, because A2 flags about 5% of benig
 
 A policy lasts `ttl_records` (2,000) replay records, counted in replay order, never wall-clock time. A repeat offender's next policy lasts twice as long, up to `max_ttl_records` (16,000).
 
-**Boundary convention, configurable and not yet confirmed:** `level2.defense.expiry_boundary`.
+**Boundary convention:** `level2.defense.expiry_boundary`. The organisers' stage page confirms inclusive, which is what the system uses.
 
 | Value | Is the record named by `expires_after_record_id` blocked? | Example: activated after R002, expires after R010 |
 |---|---|---|
-| `inclusive` (default) | Yes | R003 to R010 can be blocked |
+| `inclusive` (used) | Yes | R003 to R010 can be blocked |
 | `exclusive` | No | R003 to R009 can be blocked |
 
-Inclusive is the default because "expires after R010" reads as R010 still being covered. On the rehearsal the choice moved 2 of 54,098 blocks. The rule checker applies whichever convention is configured.
+The rule checker applies whichever convention is configured.
 
 ## End of the replay
 
@@ -72,7 +72,7 @@ A5 knows the file's record count for this purpose only. It is not evidence, and 
 
 ## STOP
 
-`engine.stop()`, or `POST /api/defense/stop` on the live replay, stops A5 activating anything further. Active policies run to their recorded expiry, because `policy.csv` has committed to that range and replay must stay deterministic. Separately, `POST /api/replay/stop` halts the whole live replay.
+`engine.stop()`, or `POST /api/defense/stop` on the live replay, stops A5 activating anything further. Active policies run to their recorded expiry, because `policies.csv` has committed to that range and replay must stay deterministic. Separately, `POST /api/replay/stop` halts the whole live replay.
 
 ## How causality is enforced
 
@@ -82,9 +82,3 @@ A5 knows the file's record count for this purpose only. It is not evidence, and 
 | `assert_causal`, at every activation and at the end | A later record inside any window or group |
 | `check_prefix_invariance`, on every `run_level2.py` run | Any earlier decision changing when later records are removed |
 | `replace(partition, labels=None)` in `run_level2` | Labels reaching scoring or replay |
-
-## Open questions for the organisers
-
-1. The exact `replay.csv` header.
-2. Whether the record named by `expires_after_record_id` is still blocked.
-3. Which order wins if `seq`, file order and timestamps ever disagree.

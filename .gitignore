@@ -1,3 +1,5 @@
+# Team preparation notes stay local.
+team-notes/
 # Dataset and derived data are never committed.
 data/raw/
 data/extracted/

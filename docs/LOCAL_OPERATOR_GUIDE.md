@@ -80,8 +80,6 @@ Go to **http://localhost:5173/data** in Chrome. In the side menu, this screen is
 
 ### 6 to 8. Choose your input
 
-![The Data Manager after inspection](images/data-manager-inspection.png)
-
 6. Click **CONNECT LOCAL INPUT FOLDER** and pick the folder holding the organisers' files. If Chrome asks for permission, allow it.
 7. Tick only the CSV, ZIP or Parquet files you want. Each row shows its name, location, type and size.
 8. Under "What are the selected files?", choose **Day 2 hidden replay data**.
@@ -95,8 +93,6 @@ Go to **http://localhost:5173/data** in Chrome. In the side menu, this screen is
 If a ZIP holds several data files, untick the ones that don't belong to this job. Files are never joined when their columns differ or their order is unknown.
 
 ### 12 to 15. Run it and watch
-
-![A completed run](images/data-manager-run.png)
 
 12. Click **RUN DAY 2 PIPELINE**.
 13. Watch the five agent cards. They report what each agent is really doing.
@@ -115,8 +111,6 @@ After a run, click **SHOW IN COMMAND CENTRE**, then press play in **Live Replay*
 **"Every rule passed" and "Ready to submit" are different.** The second stays off while any blocker listed under it remains. For example, a validation run can pass every rule but is not the hidden set.
 
 ### 18 and 19. Export
-
-![A finished export](images/data-manager-export.png)
 
 18. Click **CHOOSE OUTPUT FOLDER** and pick any folder you can write to.
 19. Click **EXPORT ALL OUTPUTS**. A new folder named after the run is created inside it. A file only shows "saved" after the browser finishes writing it and its size checks out.

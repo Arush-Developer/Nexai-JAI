@@ -2,7 +2,7 @@
 
 This records who is responsible for each module, not who wrote it. The first version of this code was generated with Claude Code from the team brief. A person owns a module once they have reviewed it, can explain it, and have contributed to it. Use real commits under your own name for that work; do not attribute generated code to anyone.
 
-`docs/TEAM_HANDOFF.md` has what each person must review. `docs/MODULE_CONTRACTS.md` defines the interfaces below.
+`docs/MODULE_CONTRACTS.md` defines the interfaces below.
 
 ## Day 2 agent ownership
 
@@ -14,7 +14,7 @@ This records who is responsible for each module, not who wrote it. The first ver
 | A4 Temporal Correlation, and chronological replay integration | Arush |
 | A5 Adaptive Defence, and policy activation and expiry | Agrim |
 
-Modules outside the five agents stay with whoever held them on Day 1. `docs/TEAM_VIVA_GUIDE.md` has what each person must be able to defend.
+Modules outside the five agents stay with whoever held them on Day 1.
 
 ## Arush: A4, replay integration and backend architecture
 
@@ -106,7 +106,7 @@ Modules outside the five agents stay with whoever held them on Day 1. `docs/TEAM
 
 - **Inputs:** REST and SSE responses.
 - **Outputs:** the app shell, replay screens, and the client every screen uses.
-- **Test:** `npm --prefix frontend run build`, then run the checks in `docs/TEAM_HANDOFF.md`. No automated frontend tests exist yet.
+- **Test:** `npm --prefix frontend run build`, and `npx playwright test` from `frontend/`.
 
 ## Agrim: frontend analytics and investigation (with A5, above)
 
@@ -120,7 +120,7 @@ Modules outside the five agents stay with whoever held them on Day 1. `docs/TEAM
 
 - **Inputs:** `/metrics`, `/campaigns`, `/ports`, `/flows`, `/incidents`, `/investigations`, `/policy`, `/audit`.
 - **Outputs:** the analytics, investigation and audit screens.
-- **Test:** `npm --prefix frontend run build`, then run the checks in `docs/TEAM_HANDOFF.md`.
+- **Test:** `npm --prefix frontend run build`, and `npx playwright test` from `frontend/`.
 
 ## Shared
 

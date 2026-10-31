@@ -1,6 +1,6 @@
 """Run all five agents over a flow file in the supplied order and write the three Level 2 CSVs.
 
-Nothing is uploaded: the organisers' Level 2 API details are not yet available. The file's labels, if
+Nothing is uploaded: a person submits the files on the organisers' stage page. The file's labels, if
 it has any, are ignored. Checks the files on disk against the brief's rules, reruns replay on prefixes
 of the stream to prove no future record changed a decision, and refuses to report success otherwise.
 
