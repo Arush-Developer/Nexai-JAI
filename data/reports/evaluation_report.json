@@ -84,8 +84,8 @@
         "benign_blocked_rate": 0.0,
         "benign_reviewed_rate": 0.00013333111114814753
       },
-      "seconds": 0.038,
-      "latency_ms_per_1k_flows": 0.334
+      "seconds": 0.043,
+      "latency_ms_per_1k_flows": 0.379
     },
     "mode_b_with_anomaly_and_fusion": {
       "accuracy": 0.999964969129045,
@@ -153,28 +153,27 @@
       },
       "false_positive_rate": 1.666638889351844e-05,
       "false_negative_rate": 5.536689797726266e-05,
-      "agent_agreement_rate": 0.9736042387353856,
+      "agent_agreement_rate": 0.9738932434207646,
       "evidence_status_counts": {
-        "AGREED_BENIGN": 56997,
-        "ANOMALY_ONLY": 3006,
-        "CLASSIFIER_ONLY": 8,
-        "MULTI_SIGNAL_ATTACK": 54174
+        "AGREED_BENIGN": 57022,
+        "ANOMALY_ONLY": 2981,
+        "MULTI_SIGNAL_ATTACK": 54182
       },
       "policy": {
         "counts": {
-          "ALLOW": 56995,
+          "ALLOW": 57022,
           "BLOCK": 54181,
-          "REVIEW": 3009
+          "REVIEW": 2982
         },
         "attacks_blocked_rate": 0.9999261774693636,
         "attacks_allowed_rate": 0.0,
         "attacks_reviewed_rate": 7.382253063635022e-05,
-        "benign_allowed_rate": 0.9499008349860836,
+        "benign_allowed_rate": 0.9503508274862086,
         "benign_blocked_rate": 1.666638889351844e-05,
-        "benign_reviewed_rate": 0.05008249862502292
+        "benign_reviewed_rate": 0.04963250612489792
       },
-      "seconds": 8.213,
-      "latency_ms_per_1k_flows": 71.929
+      "seconds": 0.159,
+      "latency_ms_per_1k_flows": 1.395
     },
     "mode_c_complete_system": {
       "accuracy": 0.999964969129045,
@@ -242,43 +241,41 @@
       },
       "false_positive_rate": 1.666638889351844e-05,
       "false_negative_rate": 5.536689797726266e-05,
-      "agent_agreement_rate": 0.9736042387353856,
+      "agent_agreement_rate": 0.9738932434207646,
       "evidence_status_counts": {
-        "AGREED_BENIGN": 52274,
-        "ANOMALY_ONLY": 3006,
-        "CAMPAIGN_CORROBORATED": 6,
-        "CAMPAIGN_ONLY": 4723,
-        "CLASSIFIER_ONLY": 2,
-        "MULTI_SIGNAL_ATTACK": 54174
+        "AGREED_BENIGN": 53288,
+        "ANOMALY_ONLY": 2981,
+        "CAMPAIGN_ONLY": 3734,
+        "MULTI_SIGNAL_ATTACK": 54182
       },
       "policy": {
         "counts": {
-          "ALLOW": 52272,
-          "BLOCK": 54133,
-          "REVIEW": 7780
+          "ALLOW": 53288,
+          "BLOCK": 54122,
+          "REVIEW": 6775
         },
-        "attacks_blocked_rate": 0.9990587627343865,
+        "attacks_blocked_rate": 0.9988557507751366,
         "attacks_allowed_rate": 0.0,
-        "attacks_reviewed_rate": 0.0009412372656134652,
-        "benign_allowed_rate": 0.8711854802419959,
+        "attacks_reviewed_rate": 0.0011442492248634284,
+        "benign_allowed_rate": 0.8881185313578107,
         "benign_blocked_rate": 0.0,
-        "benign_reviewed_rate": 0.12881451975800404
+        "benign_reviewed_rate": 0.1118814686421893
       },
-      "seconds": 11.018,
-      "latency_ms_per_1k_flows": 96.494,
+      "seconds": 8.401,
+      "latency_ms_per_1k_flows": 73.576,
       "investigation_coverage": {
-        "triggered": 18372,
-        "investigated": 18372,
-        "share_of_flows": 0.16089679029644874,
+        "triggered": 60897,
+        "investigated": 60897,
+        "share_of_flows": 0.5333187371371021,
         "verdicts": {
-          "SUPPORTS_ATTACK": 11322,
-          "CONFLICTING": 7049,
-          "SUPPORTS_BENIGN": 1
+          "SUPPORTS_ATTACK": 52618,
+          "CONFLICTING": 8273,
+          "SUPPORTS_BENIGN": 6
         }
       },
       "campaign_grouping": {
-        "campaigns": 21,
-        "flows_in_a_campaign": 59668
+        "campaigns": 11,
+        "flows_in_a_campaign": 58380
       }
     },
     "mode_c_causal_replay": {
@@ -288,28 +285,28 @@
       "accuracy": 0.999964969129045,
       "policy": {
         "counts": {
-          "ALLOW": 52198,
-          "BLOCK": 54139,
-          "REVIEW": 7848
+          "ALLOW": 53279,
+          "BLOCK": 54141,
+          "REVIEW": 6765
         },
-        "attacks_blocked_rate": 0.999169496530341,
+        "attacks_blocked_rate": 0.9991879521630002,
         "attacks_allowed_rate": 0.0,
-        "attacks_reviewed_rate": 0.0008305034696589399,
-        "benign_allowed_rate": 0.8699521674638756,
-        "benign_blocked_rate": 0.0,
-        "benign_reviewed_rate": 0.1300478325361244
+        "attacks_reviewed_rate": 0.0008120478369998523,
+        "benign_allowed_rate": 0.8879685338577691,
+        "benign_blocked_rate": 1.666638889351844e-05,
+        "benign_reviewed_rate": 0.11201479975333745
       },
-      "campaigns": 12,
+      "campaigns": 7,
       "investigations_run": 575,
-      "investigation_triggers": 18446,
-      "replay_analysis_flows_per_second": 10163.0,
-      "wall_seconds_at_requested_100k_flows_per_second": 12.66
+      "investigation_triggers": 60906,
+      "replay_analysis_flows_per_second": 109723.4,
+      "wall_seconds_at_requested_100k_flows_per_second": 2.47
     }
   },
   "labels_used_for": "scoring only; no model or threshold was tuned on this partition",
   "model_version": "catboost-all_training-seed42-noport",
-  "anomaly_version": "scaled_ensemble-benign-seed42",
-  "anomaly_detector": "scaled_ensemble",
+  "anomaly_version": "supervised-seed42",
+  "anomaly_detector": "supervised",
   "fusion_config": {
     "low_confidence": 0.6,
     "benign_override_below": null
@@ -514,16 +511,16 @@
   },
   "agent2": {
     "rows": 114185,
-    "roc_auc": 0.9804986001906613,
-    "pr_auc": 0.9502659314706752,
+    "roc_auc": 0.9999999849281511,
+    "pr_auc": 0.9999999805929238,
     "attack_prevalence": 0.47452817795682445,
-    "recall": 0.9998523549387273,
-    "false_positive_rate": 0.0500658322361294,
-    "precision": 0.9474641483036027,
+    "recall": 1.0,
+    "false_positive_rate": 0.04964917251379144,
+    "precision": 0.9478858702307437,
     "per_class_flag_rate": {
-      "BENIGN": 0.0500658322361294,
-      "BRUTE_FORCE": 0.9978323699421965,
-      "DOS": 0.9997916666666666,
+      "BENIGN": 0.04964917251379144,
+      "BRUTE_FORCE": 1.0,
+      "DOS": 1.0,
       "DDOS": 1.0,
       "PORT_SCAN": 1.0
     },
@@ -531,51 +528,51 @@
       {
         "threshold": 0.8,
         "recall": 1.0,
-        "false_positive_rate": 0.1978300361660639
+        "false_positive_rate": 0.2014466425559574
       },
       {
         "threshold": 0.9,
-        "recall": 0.9999630887346819,
-        "false_positive_rate": 0.09798170030499492
+        "recall": 1.0,
+        "false_positive_rate": 0.10043165947234213
       },
       {
         "threshold": 0.95,
-        "recall": 0.9998523549387273,
-        "false_positive_rate": 0.0500658322361294
+        "recall": 1.0,
+        "false_positive_rate": 0.04964917251379144
       },
       {
         "threshold": 0.98,
-        "recall": 0.44564816181898714,
-        "false_positive_rate": 0.019049682505291578
+        "recall": 1.0,
+        "false_positive_rate": 0.01996633389443509
       },
       {
         "threshold": 0.99,
-        "recall": 0.19607264137014616,
-        "false_positive_rate": 0.008949850835819404
+        "recall": 1.0,
+        "false_positive_rate": 0.00951650805819903
       }
     ],
     "score_histogram_by_class": {
       "BENIGN": [
-        3078,
-        3071,
-        2966,
-        3032,
-        2959,
-        3279,
-        2773,
-        2956,
-        2984,
-        3169,
-        2960,
-        2906,
-        2803,
-        3074,
-        3019,
-        3102,
-        2980,
-        3011,
-        2875,
-        3004
+        33490,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2827,
+        2533,
+        2919,
+        3041,
+        3104,
+        3027,
+        3034,
+        3047,
+        2979
       ],
       "BRUTE_FORCE": [
         0,
@@ -595,9 +592,9 @@
         0,
         0,
         0,
-        1,
-        2,
-        1381
+        0,
+        0,
+        1384
       ],
       "DOS": [
         0,
@@ -617,9 +614,9 @@
         0,
         0,
         0,
-        1,
-        4,
-        23995
+        0,
+        0,
+        24000
       ],
       "DDOS": [
         0,
@@ -786,16 +783,16 @@
       "accuracy": 0.999964969129045,
       "policy": {
         "counts": {
-          "ALLOW": 56995,
+          "ALLOW": 57022,
           "BLOCK": 54181,
-          "REVIEW": 3009
+          "REVIEW": 2982
         },
         "attacks_blocked_rate": 0.9999261774693636,
         "attacks_allowed_rate": 0.0,
         "attacks_reviewed_rate": 7.382253063635022e-05,
-        "benign_allowed_rate": 0.9499008349860836,
+        "benign_allowed_rate": 0.9503508274862086,
         "benign_blocked_rate": 1.666638889351844e-05,
-        "benign_reviewed_rate": 0.05008249862502292
+        "benign_reviewed_rate": 0.04963250612489792
       }
     },
     "plus_campaign_intelligence": {
@@ -803,16 +800,16 @@
       "accuracy": 0.999964969129045,
       "policy": {
         "counts": {
-          "ALLOW": 52272,
+          "ALLOW": 53288,
           "BLOCK": 54142,
-          "REVIEW": 7771
+          "REVIEW": 6755
         },
         "attacks_blocked_rate": 0.9992064077956593,
         "attacks_allowed_rate": 0.0,
         "attacks_reviewed_rate": 0.0007935922043407648,
-        "benign_allowed_rate": 0.8711854802419959,
+        "benign_allowed_rate": 0.8881185313578107,
         "benign_blocked_rate": 1.666638889351844e-05,
-        "benign_reviewed_rate": 0.1287978533691105
+        "benign_reviewed_rate": 0.11186480225329577
       }
     },
     "plus_investigation": {
@@ -820,51 +817,46 @@
       "accuracy": 0.999964969129045,
       "policy": {
         "counts": {
-          "ALLOW": 52272,
-          "BLOCK": 54133,
-          "REVIEW": 7780
+          "ALLOW": 53288,
+          "BLOCK": 54122,
+          "REVIEW": 6775
         },
-        "attacks_blocked_rate": 0.9990587627343865,
+        "attacks_blocked_rate": 0.9988557507751366,
         "attacks_allowed_rate": 0.0,
-        "attacks_reviewed_rate": 0.0009412372656134652,
-        "benign_allowed_rate": 0.8711854802419959,
+        "attacks_reviewed_rate": 0.0011442492248634284,
+        "benign_allowed_rate": 0.8881185313578107,
         "benign_blocked_rate": 0.0,
-        "benign_reviewed_rate": 0.12881451975800404
+        "benign_reviewed_rate": 0.1118814686421893
       }
     },
     "note": "Agent 2, campaigns and investigation change evidence and policy routing. They change final_class only if the benign override passed internal validation."
   },
-  "agent_agreement_rate": 0.9736042387353856,
+  "agent_agreement_rate": 0.9738932434207646,
   "evidence_status_counts": {
-    "MULTI_SIGNAL_ATTACK": 54174,
-    "AGREED_BENIGN": 52274,
-    "CAMPAIGN_ONLY": 4723,
-    "ANOMALY_ONLY": 3006,
-    "CAMPAIGN_CORROBORATED": 6,
-    "CLASSIFIER_ONLY": 2
+    "MULTI_SIGNAL_ATTACK": 54182,
+    "AGREED_BENIGN": 53288,
+    "CAMPAIGN_ONLY": 3734,
+    "ANOMALY_ONLY": 2981
   },
   "policy": {
     "counts": {
-      "ALLOW": 52272,
-      "BLOCK": 54133,
-      "REVIEW": 7780
+      "ALLOW": 53288,
+      "BLOCK": 54122,
+      "REVIEW": 6775
     },
-    "attacks_blocked_rate": 0.9990587627343865,
+    "attacks_blocked_rate": 0.9988557507751366,
     "attacks_allowed_rate": 0.0,
-    "attacks_reviewed_rate": 0.0009412372656134652,
-    "benign_allowed_rate": 0.8711854802419959,
+    "attacks_reviewed_rate": 0.0011442492248634284,
+    "benign_allowed_rate": 0.8881185313578107,
     "benign_blocked_rate": 0.0,
-    "benign_reviewed_rate": 0.12881451975800404
+    "benign_reviewed_rate": 0.1118814686421893
   },
   "policy_rule_counts": {
-    "CONFIDENT_ATTACK_WITH_INDEPENDENT_SUPPORT": 54131,
-    "CONFIDENT_BENIGN_NO_OTHER_SIGNAL": 52272,
-    "CAMPAIGN_ONLY_NEEDS_REVIEW": 5700,
-    "ANOMALY_ONLY_NEEDS_REVIEW": 2017,
-    "UNRESOLVED_CONFLICT": 60,
-    "VERY_CONFIDENT_CLASSIFIER_ONLY": 2,
-    "BENIGN_BELOW_ALLOW_THRESHOLD": 2,
-    "ATTACK_BELOW_BLOCK_THRESHOLD": 1
+    "CONFIDENT_ATTACK_WITH_INDEPENDENT_SUPPORT": 54122,
+    "CONFIDENT_BENIGN_NO_OTHER_SIGNAL": 53288,
+    "CAMPAIGN_ONLY_NEEDS_REVIEW": 4418,
+    "ANOMALY_ONLY_NEEDS_REVIEW": 2259,
+    "UNRESOLVED_CONFLICT": 98
   },
   "campaign_intelligence": {
     "mode": "cohort",
@@ -873,7 +865,7 @@
       "DoS and DDoS cannot be separated without source addresses; both report as VOLUMETRIC_CANDIDATE",
       "record order stands in for time and is not verified chronology"
     ],
-    "total_campaigns": 21,
+    "total_campaigns": 11,
     "per_type": {
       "BRUTE_FORCE_CANDIDATE": {
         "campaigns": 7,
@@ -888,14 +880,14 @@
         "member_share_benign": 0.008495230137177076
       },
       "VOLUMETRIC_CANDIDATE": {
-        "campaigns": 13,
-        "member_flows": 43921,
-        "member_share_of_matching_class": 0.8742970333098062,
-        "member_share_benign": 0.12481500876573849
+        "campaigns": 3,
+        "member_flows": 42633,
+        "member_share_of_matching_class": 0.9007107170501724,
+        "member_share_benign": 0.09837449862782352
       }
     },
     "share_of_each_class_in_a_campaign": {
-      "BENIGN": 0.09509841502641622,
+      "BENIGN": 0.07363210613156447,
       "BRUTE_FORCE": 0.9277456647398844,
       "DDOS": 1.0,
       "DOS": 1.0,
@@ -903,20 +895,20 @@
     }
   },
   "investigation": {
-    "triggered": 18372,
-    "investigated": 18372,
+    "triggered": 60897,
+    "investigated": 60897,
     "verdicts": {
-      "SUPPORTS_ATTACK": 11322,
-      "CONFLICTING": 7049,
-      "SUPPORTS_BENIGN": 1
+      "SUPPORTS_ATTACK": 52618,
+      "CONFLICTING": 8273,
+      "SUPPORTS_BENIGN": 6
     },
-    "seconds": 2.29,
-    "conflicts_holding_decisions": 21
+    "seconds": 7.88,
+    "conflicts_holding_decisions": 59
   },
   "latency": {
-    "agent1_ms_per_1k_flows": 0.33425180189245113,
-    "agent2_ms_per_1k_flows": 71.59435491527493,
-    "scoring_campaign_fusion_policy_flows_per_second": 13082.311917397119,
-    "investigation_seconds": 2.29
+    "agent1_ms_per_1k_flows": 0.3792303367279267,
+    "agent2_ms_per_1k_flows": 1.0158485440374432,
+    "scoring_campaign_fusion_policy_flows_per_second": 219026.96668262576,
+    "investigation_seconds": 7.88
   }
 }

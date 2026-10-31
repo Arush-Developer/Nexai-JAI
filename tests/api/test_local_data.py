@@ -393,7 +393,7 @@ def test_policies_on_real_timestamps_explain_the_window_in_seconds(client, tmp_p
     evidence = json.loads((tmp_path / LIMITS["outputs_dir"] / run_id / "agent4_agent5_evidence.json").read_text())
     assert evidence["correlation_groups"], "the synthetic fixture should form groups"
     assert all(g["evidence"]["window_basis"] == "seconds" for g in evidence["correlation_groups"])
-    assert all("300 seconds" in g["correlation_reason"] for g in evidence["correlation_groups"])
+    assert all("3600 seconds" in g["correlation_reason"] for g in evidence["correlation_groups"])
 
 
 def split_time(frame: pd.DataFrame) -> pd.DataFrame:

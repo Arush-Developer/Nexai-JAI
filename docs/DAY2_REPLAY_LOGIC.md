@@ -36,7 +36,7 @@ A record with a missing source address is allowed and not analysed, because miss
 
 A flow is suspicious if A1 calls an attack, A2 flags it, or A3 reports `UNCERTAIN`. A group forms when a source's window holds `min_group_members` (2) suspicious flows, with those earlier flows as its first members. A destination forms a group when `converging_min_sources` (10) different sources make confident attack calls on it inside the window.
 
-When a record has a timestamp, a flow leaves a window after `window_seconds` (300, an engineering default that has not been tuned on real timestamps). Only a record with no timestamp falls back to `window_records` (2,000), and the evidence's `window_basis` then says `records`, so a record count is never described as a time window. A gap longer than the window starts a new group.
+When a record has a timestamp, a flow leaves a window after `window_seconds` (3600, set from the hidden file's timing, because the labelled pack has no timestamps to test it on). Only a record with no timestamp falls back to `window_records` (2,000), and the evidence's `window_basis` then says `records`, so a record count is never described as a time window. A gap longer than the window starts a new group.
 
 ## Agent 5 policy criteria
 

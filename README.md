@@ -67,14 +67,14 @@ No model or threshold was tuned on these. Regenerate with `scripts/evaluate.py`;
 |---|---|
 | A1 classes | BENIGN 100, DOS 40, DDOS 24, PORT_SCAN 24, BRUTE_FORCE 12 |
 | A3 evidence | 194 AGREE, 6 CONFLICT |
-| A5 policies | 1: BLOCK `SOURCE_IP` 172.16.0.1, activated after F000020, through F000200 |
-| Replay | 103 ALLOW, 97 BLOCK |
+| A5 policies | 1: BLOCK `SOURCE_IP` 172.16.0.1, activated after F000018, through F000200 |
+| Replay | 102 ALLOW, 98 BLOCK |
 
 These describe what the system did. The labels stay with the organisers, so only their score can say whether it was right.
 
 **Why one policy:** all 100 attack calls come from one source, against one target, and the other 13 sources are all called benign. That policy stopped four attack phases over three days. Shorter policies would give several, but block fewer attack calls, because each expiry lets the source through until A5 has the evidence again.
 
-**How the settings were chosen:** A2 was selected on an internal split of the training data, and tested on the validation records. A5's thresholds were chosen by `scripts/tune_level2.py` on validation flows with invented addresses, because the labelled pack has no real ones. They replaced more cautious values after our first submission. No hidden label was read, and no model was fitted on the hidden set.
+**How the settings were chosen:** A2 was selected on an internal split of the training data, and tested on the validation records. A5's thresholds were chosen by `scripts/tune_level2.py` on validation flows with invented addresses, because the labelled pack has no real ones. They replaced more cautious values after our first submission. A4's 1-hour window is different: the labelled pack has no timestamps to test it on, so it was widened from 300 seconds after seeing the hidden file's timing and our score. No hidden label was read, and no model was fitted on the hidden set.
 
 ## Run it
 
@@ -116,7 +116,7 @@ Run the tests:
 
 ## Known limitations
 
-- **A4 and A5 have no measured accuracy on real endpoints in this repository.** The labelled pack has no endpoints, and the hidden set has no labels. Their thresholds were compared only on invented addresses ([tune_level2.py](scripts/tune_level2.py)), and the 300-second window is an untuned default.
+- **A4 and A5 have no measured accuracy on real endpoints in this repository.** The labelled pack has no endpoints, and the hidden set has no labels. Their thresholds were compared only on invented addresses ([tune_level2.py](scripts/tune_level2.py)), and the 1-hour window was set from the hidden file's timing, not measured on labelled data.
 - **A policy is a blunt tool:** it blocks everything from a source, including any benign flows it sends.
 - **Without endpoints,** as in the labelled pack, A4 and A5 are off and only `classification.csv` is produced. Addresses are never invented for a real run.
 - **Live replay investigations** are capped at 5 per batch. The batch evaluation investigates all of them.

@@ -43,6 +43,8 @@ Non-numeric features: none. Every feature is numeric, so there is nothing to enc
 | `protocol` | no |
 | `timestamp` | no |
 | `seq` | no |
+| `day` | no |
+| `time_offset` | no |
 
 The pack's README says endpoint columns ship with the hidden set.
 

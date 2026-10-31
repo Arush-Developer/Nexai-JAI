@@ -4,14 +4,14 @@
   "rows": 114185,
   "rule_violations": [],
   "policies": 164,
-  "correlation_groups": 578,
-  "attack_flows_blocked_share": 0.993485161671342,
+  "correlation_groups": 592,
+  "attack_flows_blocked_share": 0.9943341207736601,
   "benign_flows_blocked_share": 0.005116581390310161,
   "benign_flows_blocked": 307,
   "attack_blocked_share_by_class": {
-    "BRUTE_FORCE": 0.986271676300578,
-    "DDOS": 0.97875,
-    "DOS": 0.9994166666666666,
-    "PORT_SCAN": 0.9990277777777777
+    "BRUTE_FORCE": 0.9884393063583815,
+    "DDOS": 0.9811805555555555,
+    "DOS": 0.9995833333333334,
+    "PORT_SCAN": 0.9993055555555556
   }
 }

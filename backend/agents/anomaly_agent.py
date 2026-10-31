@@ -14,7 +14,7 @@ from dataclasses import dataclass
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import IsolationForest
+from sklearn.ensemble import HistGradientBoostingClassifier, IsolationForest
 from sklearn.neighbors import NearestNeighbors
 
 # RobustBaseline must stay importable from this module: the saved model was pickled against this path.
@@ -83,6 +83,20 @@ class AnomalyAgent:
     threshold: float = 0.95
     model_version: str = ""
     ensemble: ScaledEnsemble | None = None
+    supervised: HistGradientBoostingClassifier | None = None
+    supervised_reference: np.ndarray | None = None
+
+    def fit_supervised(self, features: pd.DataFrame, is_attack: np.ndarray, benign_calibration: pd.DataFrame, seed: int = 42) -> None:
+        """Learn attack against benign from labelled training flows. The score is still a percentile among unseen benign flows.
+
+        Separate from Agent 1: another algorithm, a yes-or-no question, and it never reads Agent 1's output.
+        """
+        self.supervised = HistGradientBoostingClassifier(max_iter=200, learning_rate=0.1, class_weight="balanced",
+                                                         random_state=seed).fit(self.pipeline.transform(features), is_attack)
+        self.supervised_reference = np.sort(self.supervised.predict_proba(self.pipeline.transform(benign_calibration))[:, 1])
+
+    def _supervised_score(self, X: np.ndarray) -> np.ndarray:
+        return self._percentile(self.supervised.predict_proba(X)[:, 1], self.supervised_reference)
 
     @classmethod
     def train(cls, benign_features: pd.DataFrame, seed: int = 42, n_estimators: int = 200,
@@ -130,9 +144,13 @@ class AnomalyAgent:
         }
         if self.ensemble is not None:
             scores["scaled_ensemble"] = self.ensemble.score(X.astype(np.float64))
+        if self.supervised is not None:
+            scores["supervised"] = self._supervised_score(X)
         return scores
 
     def score(self, features: pd.DataFrame) -> np.ndarray:
+        if self.detector == "supervised":
+            return self._supervised_score(self.pipeline.transform(features))
         if self.detector == "scaled_ensemble":
             return self.ensemble.score(self.pipeline.transform(features).astype(np.float64))
         return self.score_detectors(features)[self.detector]

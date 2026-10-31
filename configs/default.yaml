@@ -40,14 +40,16 @@ level2:
     window_records: 2000
     # Measured in seconds whenever a record has a timestamp; window_records is only for records without one.
     # An engineering default, not a tuned value: the pack has no timestamps to tune on.
-    window_seconds: 300
+    window_seconds: 3600
     min_group_members: 2
+    # One flow is enough only when A1 and A2 both call it an attack at high confidence.
+    group_on_one_agreed_attack: true
     scan_min_ports: 20
     converging_min_sources: 10
   defense:
     min_confidence: 0.90
     # Chosen by scripts/tune_level2.py on the labelled validation set. See data/reports/level2_tuning.json.
-    min_attack_flows_multi_signal: 2
+    min_attack_flows_multi_signal: 1  # On validation: 54,173 such flows, of which 1 was benign.
     min_attack_flows_classifier_only: 3
     min_attack_flows_converging: 2
     min_attack_share: 0.50

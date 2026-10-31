@@ -12,23 +12,22 @@
     "model": "catboost-all_training-seed42-noport"
   },
   "agent2": {
-    "roc_auc": 0.9804986001906613,
-    "pr_auc": 0.9502659314706752,
-    "recall": 0.9998523549387273,
-    "false_positive_rate": 0.0500658322361294
+    "roc_auc": 0.9999999849281511,
+    "pr_auc": 0.9999999805929238,
+    "recall": 1.0,
+    "false_positive_rate": 0.04964917251379144
   },
   "agent3": {
-    "agreement_rate": 0.9736042387353856,
+    "agreement_rate": 0.9738932434207646,
     "evidence_status_counts": {
-      "AGREED_BENIGN": 56997,
-      "ANOMALY_ONLY": 3006,
-      "CLASSIFIER_ONLY": 8,
-      "MULTI_SIGNAL_ATTACK": 54174
+      "AGREED_BENIGN": 57022,
+      "ANOMALY_ONLY": 2981,
+      "MULTI_SIGNAL_ATTACK": 54182
     },
     "policy_counts": {
-      "ALLOW": 56995,
+      "ALLOW": 57022,
       "BLOCK": 54181,
-      "REVIEW": 3009
+      "REVIEW": 2982
     }
   }
 }

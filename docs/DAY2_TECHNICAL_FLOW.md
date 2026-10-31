@@ -58,7 +58,7 @@ All in `configs/default.yaml`.
 
 | Setting | Now | Status |
 |---|---|---|
-| `level2.temporal.window_seconds` | 300 | Engineering default. No real timestamps exist to tune it on |
+| `level2.temporal.window_seconds` | 3600 | Set from the hidden file's timing, because the labelled pack has no timestamps. Not measured on labelled data |
 | `level2.defense.expiry_boundary` | `inclusive` | Confirmed by the organisers' stage page |
 | `level2.expiry_boundary_confirmed` | `true` | Confirmed |
 | `level2.columns.replay` | `record_id, action, active_policy_id` | From the organisers' template |

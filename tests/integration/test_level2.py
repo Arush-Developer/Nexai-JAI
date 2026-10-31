@@ -254,7 +254,8 @@ def test_group_members_come_from_real_records_and_never_from_blocked_ones(run):
         members = group["member_record_ids"]
         assert all(actions[m] == "ALLOW" for m in members)
         assert [position[m] for m in members] == sorted(position[m] for m in members)
-        assert len(members) >= 2
+        first = group["supporting_evidence"][0]
+        assert len(members) >= 2 or (first["agent2_flagged"] and first["agent1_class"] != "BENIGN" and first["agent1_confidence"] >= 0.9)
     log = {e["policy_id"]: e for e in result["log"] if e["event"] == "ACTIVATED"}
     for p in result["policies"]:
         assert position[p["activated_after_record_id"]] == log[p["policy_id"]]["position"]

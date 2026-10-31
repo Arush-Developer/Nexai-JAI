@@ -20,7 +20,7 @@ The hidden set ran end to end through the website. It has no labels here, so its
 | Area | Status | Evidence |
 |---|---|---|
 | A1, A2 and A3 on labelled records | PASS | Macro-F1 0.99990 on 114,185 records |
-| A1 to A5 on the hidden set | PASS | 200 records, 1 group, 1 policy, 97 blocks, 0 rule violations |
+| A1 to A5 on the hidden set | PASS | 200 records, 1 group, 1 policy, 98 blocks, 0 rule violations |
 | A4 and A5 accuracy on real endpoints | BLOCKED | The labelled pack has no endpoints, and the hidden set has no labels |
 | Policy activation and expiry | PASS on synthetic data | `tests/replay/test_day2_causal_replay.py`. On the hidden set, the policy's expiry is the end of the file |
 | Chronological replay | PASS | The same input gives byte-identical files. Rerunning on parts of the stream changes no earlier decision |

@@ -2567,6 +2567,8 @@
     "destination_port": false,
     "protocol": false,
     "timestamp": false,
-    "seq": false
+    "seq": false,
+    "day": false,
+    "time_offset": false
   }
 }

@@ -173,3 +173,12 @@ def test_a_departed_source_no_longer_counts_towards_converging():
     # Sources 1 and 2 fall out of the window; a stale zero count would still make this look like three.
     flow(a, 5, src="3.3.3.3")
     assert a.converging_group("9.9.9.9") is None
+
+
+def test_one_flow_forms_a_group_only_when_both_agents_call_it_an_attack_at_high_confidence():
+    a = agent(group_on_one_agreed_attack=True)
+    assert flow(a, 0, src="benign", cls="BENIGN", anomaly=True, status="ANOMALY_ONLY") is None
+    assert flow(a, 1, src="a1-only", anomaly=False, status="CLASSIFIER_ONLY") is None
+    assert flow(a, 2, src="unsure", conf=0.5, status="UNCERTAIN") is None
+    assert flow(a, 3, src="both")["member_record_ids"] == ["R3"]
+

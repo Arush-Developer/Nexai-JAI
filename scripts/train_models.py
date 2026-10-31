@@ -163,16 +163,17 @@ def main() -> None:
     benign_fit = splits.fit[y[splits.fit] == "BENIGN"]
     benign_cal = splits.calibration[y[splits.calibration] == "BENIGN"]
     anomaly = AnomalyAgent.train(features.iloc[benign_fit], seed=SEED,
-                                 model_version=f"benign-only-seed{SEED}")
+                                 model_version=f"anomaly-seed{SEED}")
     target_fpr = 0.05
     anomaly.calibrate(features.iloc[benign_cal], target_fpr)
+    anomaly.fit_supervised(features.iloc[splits.fit], y[splits.fit] != "BENIGN", features.iloc[benign_cal], SEED)
     sel = features.iloc[splits.selection]
     is_attack = y[splits.selection] != "BENIGN"
     scores = anomaly.score_detectors(sel)
     detectors = {name: anomaly_report(is_attack, s, s >= anomaly.threshold) for name, s in scores.items()}
     best_detector = max(detectors, key=lambda d: detectors[d]["pr_auc"])
     anomaly.detector = best_detector
-    anomaly.model_version = f"{best_detector}-benign-seed{SEED}"
+    anomaly.model_version = f"{best_detector}-seed{SEED}"
     chosen_scores = scores[best_detector]
     report["anomaly"] = {
         "benign_fit_rows": len(benign_fit), "benign_calibration_rows": len(benign_cal),

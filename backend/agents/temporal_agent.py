@@ -25,6 +25,7 @@ class TemporalConfig:
     window_records: int = 2000  # Used only for records that have no timestamp to compare.
     window_seconds: float | None = None  # Replaces window_records when both records being compared have timestamps.
     min_group_members: int = 2  # A single suspicious flow is not yet a correlation.
+    group_on_one_agreed_attack: bool = False  # Except, if set, one flow both A1 and A2 call an attack at high confidence.
     scan_min_ports: int = 20
     converging_min_sources: int = 10
     max_member_ids: int = 5000
@@ -184,7 +185,8 @@ class TemporalCorrelationAgent:
         # A gap longer than the window means this is a new episode, not a continuation.
         if group is None or self._outside(group["_last_position"], group["_last_time"], o):
             self._open.pop(key, None)
-            if window.suspicious < self.config.min_group_members:
+            agreed = self.config.group_on_one_agreed_attack and o.confident_attack and o.is_anomaly
+            if window.suspicious < self.config.min_group_members and not agreed:
                 return None
             group = {
                 "group_id": f"GRP-{len(self.groups) + 1:05d}", "scope_type": scope, "scope_value": value,
