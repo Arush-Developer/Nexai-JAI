@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Uplo
 from fastapi.responses import FileResponse, StreamingResponse
 
 from backend.schemas.contracts import LocalInspectRequest, LocalRunRequest
+from backend.services.app_state import AppState
 from backend.services.local_data import LocalDataError, LocalDataService
 
 LOCAL_ORIGIN = re.compile(r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$")
@@ -101,12 +102,27 @@ def validate(request: Request, run_id: str):
     return _guard(lambda: service_of(request).validate(run_id))
 
 
+@router.post("/runs/{run_id}/open-in-dashboard")
+def open_in_dashboard(request: Request, run_id: str):
+    """Point every dashboard screen at this run's input until the backend restarts. The saved replay is not touched."""
+    service = service_of(request)
+    partition, name = _guard(lambda: service.dashboard_input(run_id))
+    pipeline = service.pipeline()
+    state = AppState(pipeline, pipeline.analyse(partition), persist=False, replay_input=name)
+    previous = getattr(request.app.state, "cs", None)
+    if previous is not None:
+        previous.replay.stop()
+    request.app.state.cs = state
+    request.app.state.load_error = None
+    return {"replay_input": name, "records": len(partition.metadata), "defense_available": state.replay.defense_available}
+
+
 @router.get("/runs/{run_id}/files/{name}")
 def output_file(request: Request, run_id: str, name: str):
     return FileResponse(_guard(lambda: service_of(request).output_path(run_id, name)), filename=name)
 
 
 @router.get("/runs/{run_id}/archive")
-def archive(request: Request, run_id: str):
-    path = _guard(lambda: service_of(request).archive(run_id))
+def archive(request: Request, run_id: str, submission_only: bool = False):
+    path = _guard(lambda: service_of(request).archive(run_id, submission_only))
     return FileResponse(path, media_type="application/zip", filename=path.name)

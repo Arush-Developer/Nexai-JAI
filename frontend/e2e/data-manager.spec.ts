@@ -99,7 +99,9 @@ test.describe("with the official dataset", () => {
     await expect(page.getByTestId("policy-events")).toContainText("EXPIRED");
     await expect(page.getByTestId("validation")).toContainText("Every rule passed");
     await expect(page.getByTestId("validation")).toContainText("Not ready to submit");
-    await expect(page.getByTestId("validation")).toContainText("replay.csv header is not confirmed");
+    await expect(page.getByTestId("validation")).toContainText("expiry convention is not confirmed");
+  await expect(page.getByTestId("submission")).toContainText("record_id, action, active_policy_id");
+  await expect(page.getByTestId("submission").getByRole("link", { name: "policies.csv" })).toBeVisible();
     await page.screenshot({ path: resolve(SHOTS, "data-manager-run.png"), fullPage: true });
 
     await page.getByRole("button", { name: "VALIDATE OUTPUTS" }).click();
@@ -121,18 +123,18 @@ test.describe("with the official dataset", () => {
       for await (const handle of (dir as unknown as { values(): AsyncIterable<FileSystemFileHandle> }).values()) out[handle.name] = await (await handle.getFile()).text();
       return out;
     }, runId);
-    expect(Object.keys(written)).toEqual(expect.arrayContaining(["classification.csv", "policy.csv", "replay.csv", "run_summary.json", "validation_report.json", "replay_events.jsonl"]));
+    expect(Object.keys(written)).toEqual(expect.arrayContaining(["classification.csv", "policies.csv", "replay.csv", "run_summary.json", "validation_report.json", "replay_events.jsonl"]));
     for (const name of Object.keys(written)) {
       expect(written[name], name).toBe(await (await page.request.get(`/api/local-data/runs/${runId}/files/${name}`)).text());
     }
     expect(written["classification.csv"].trim().split("\n")).toHaveLength(20001);
-    expect(written["replay.csv"].trim().split("\n")[0]).toBe("record_id,action,applied_policy_id");
+    expect(written["replay.csv"].trim().split("\n")[0]).toBe("record_id,action,active_policy_id");
 
     // An existing run folder is never overwritten without approval.
     await page.evaluate(async (id) => {
       const root = await navigator.storage.getDirectory();
       const dir = await (await root.getDirectoryHandle("chosen-output")).getDirectoryHandle(id);
-      const writable = await (await dir.getFileHandle("policy.csv")).createWritable();
+      const writable = await (await dir.getFileHandle("policies.csv")).createWritable();
       await writable.write("edited by hand");
       await writable.close();
     }, runId);
@@ -141,7 +143,7 @@ test.describe("with the official dataset", () => {
     const kept = await page.evaluate(async (id) => {
       const root = await navigator.storage.getDirectory();
       const dir = await (await root.getDirectoryHandle("chosen-output")).getDirectoryHandle(id);
-      return (await (await dir.getFileHandle("policy.csv")).getFile()).text();
+      return (await (await dir.getFileHandle("policies.csv")).getFile()).text();
     }, runId);
     expect(kept).toBe("edited by hand");
     await page.getByRole("button", { name: `Replace the files in ${runId}` }).click();
@@ -164,7 +166,7 @@ test.describe("with the official dataset", () => {
     await runPipeline(page);
     await expect(page.getByTestId("validation")).toContainText("Every rule passed");
     const download = page.waitForEvent("download");
-    await page.getByRole("link", { name: "classification.csv" }).click();
+    await page.getByTestId("export-files").getByRole("link", { name: "classification.csv" }).click();
     expect((await download).suggestedFilename()).toBe("classification.csv");
   });
 
@@ -176,6 +178,49 @@ test.describe("with the official dataset", () => {
     await chooseType(page, "validation");
     await expect(page.getByText("no label column").first()).toBeVisible();
     await expect(page.getByRole("button", { name: "RUN DAY 2 PIPELINE" })).toBeDisabled();
+  });
+});
+
+test.describe("the real hidden file", () => {
+  // E2E_HIDDEN is a folder holding the organisers' file. It is never committed, and only a local run sets it.
+  test.skip(!process.env.E2E_HIDDEN || noDataset, "Set E2E_HIDDEN to run this.");
+  test.use({ viewport: { width: 1536, height: 1024 } });
+  test("upload, run, and watch all five agents in the Command Centre", async ({ page }) => {
+    test.setTimeout(240_000);
+    await page.addInitScript(() => { delete (window as unknown as Record<string, unknown>).showDirectoryPicker; delete (Window.prototype as unknown as Record<string, unknown>).showDirectoryPicker; });
+    await page.goto("/data");
+    await page.getByTestId("folder-fallback").setInputFiles(process.env.E2E_HIDDEN!);
+    await chooseType(page, "hidden");
+    await expect(page.getByText("From this input's timestamps")).toBeVisible();
+    await runPipeline(page);
+    await expect(page.getByTestId("validation")).toContainText("Every rule passed");
+    await expect(page.getByTestId("tradeoff")).toBeVisible();
+    await page.screenshot({ path: resolve(process.env.E2E_SHOTS!, "hidden-data-manager.png"), fullPage: true });
+    await page.getByRole("button", { name: "SHOW IN COMMAND CENTRE" }).click();
+    await expect(page).toHaveURL(/command/);
+    const stage = page.getByTestId("agent-stage");
+    await expect(stage).toHaveAttribute("data-yaw", /.+/, { timeout: 20_000 });
+    await expect(page.getByTestId("orchestrator-card")).toBeVisible();
+    await expect(page.getByLabel("Replay speed")).toHaveValue("2");
+    await page.getByRole("button", { name: "Start replay" }).click();
+    // The panels must not show the future: this file's first policy comes well after the start.
+    await expect(page.getByText("No policies yet")).toBeVisible();
+    const facing = new Set<string>();
+    let shot = false;
+    await expect(async () => {
+      const now = await stage.evaluate((el) => ({ ...(el as HTMLElement).dataset }));
+      if (now.focus && now.focus !== "none" && Math.abs(Number(now.yaw) - Number(now.yawTarget)) < 0.2) {
+        facing.add(now.focus);
+        if (now.focus === "A4" && !shot) { shot = true; await page.screenshot({ path: resolve(process.env.E2E_SHOTS!, "hidden-command.png") }); }
+      }
+      expect([...facing].sort()).toEqual(["A1", "A2", "A3", "A4", "A5"]);
+    }).toPass({ timeout: 60_000, intervals: [100] });
+    await expect(page.getByTestId("agent-trace")).not.toContainText("Needs source_ip");
+    await expect(page.getByTestId("live-record")).toContainText("F000");
+    // Let the whole file replay, so the policies panel and graph show the finished state.
+    await expect(page.getByTestId("replay-state")).toContainText("completed", { timeout: 150_000 });
+    await page.waitForTimeout(3500);
+    await page.screenshot({ path: resolve(process.env.E2E_SHOTS!, "hidden-command-done.png") });
   });
 });
 

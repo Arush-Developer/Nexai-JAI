@@ -44,7 +44,23 @@ def standardise_columns(df: pd.DataFrame) -> pd.DataFrame:
     renamed = {c: meta.get(c.strip().lower().replace(" ", "_"), c.strip()) for c in df.columns}
     # "Destination Port" stays a flow feature; it is copied into the metadata in split_representations.
     renamed = {c: c.strip() if c.strip() == PORT_FEATURE else new for c, new in renamed.items()}
-    return df.rename(columns=renamed)
+    return derive_timestamp(df.rename(columns=renamed))
+
+
+def derive_timestamp(df: pd.DataFrame) -> pd.DataFrame:
+    """The hidden set states time as day plus time_offset (MM:SS.f, or H:MM:SS.f). Unreadable values stay missing."""
+    if "timestamp" in df or not {"day", "time_offset"} <= set(df.columns):
+        return df
+
+    def seconds(value) -> float:
+        try:
+            return sum(float(part) * 60 ** i for i, part in enumerate(reversed(str(value).split(":"))))
+        except ValueError:
+            return np.nan
+
+    offsets = pd.to_timedelta(df["time_offset"].map(seconds), unit="s")
+    when = pd.to_datetime(df["day"], errors="coerce") + offsets
+    return df.assign(timestamp=when.dt.strftime("%Y-%m-%d %H:%M:%S.%f"))
 
 
 class ReplayOrderError(ValueError):

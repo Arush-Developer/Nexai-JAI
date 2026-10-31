@@ -54,12 +54,13 @@ def test_outputs_follow_the_briefs_rules_after_a_file_round_trip(run, tmp_path):
     partition, result = run
     paths = write_outputs(result, tmp_path)
     meta = partition.metadata.iloc[replay_order(partition.metadata)]
-    read = {n: pd.read_csv(paths[n], dtype=str, keep_default_na=False) for n in ("classification", "policy", "replay")}
+    read, problems = read_outputs(tmp_path)
+    assert not problems
     assert not validate_outputs(read["classification"], read["policy"], read["replay"], meta["flow_id"], meta["source_ip"])
-    assert list(read["classification"].columns) == ["record_id", "predicted_class", "anomaly_score", "evidence_status"]
-    assert list(read["replay"].columns) == ["record_id", "action", "applied_policy_id"]
-    assert list(read["policy"].columns) == ["policy_id", "activated_after_record_id", "scope_type", "scope_value",
-                                            "expires_after_record_id", "policy_action"]
+    # On disk, the files carry the organisers' template headers.
+    assert (tmp_path / "classification.csv").read_text().splitlines()[0] == "record_id,predicted_class,anomaly_score,evidence_status"
+    assert (tmp_path / "replay.csv").read_text().splitlines()[0] == "record_id,action,active_policy_id"
+    assert (tmp_path / "policies.csv").read_text().splitlines()[0] == "policy_id,activated_after_record_id,scope_type,scope_value,expires_after_record_id"
     assert len(read["policy"]) and (read["replay"]["action"] == "BLOCK").any()
 
 

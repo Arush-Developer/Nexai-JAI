@@ -34,7 +34,7 @@ DATASET_TYPES = (TRAINING, VALIDATION, HIDDEN)
 FULL, CLASSIFICATION_ONLY = "full", "classification_only"
 DATA_SUFFIXES = {".csv", ".parquet"}
 RUN_ID = re.compile(r"^RUN_\d{4}_\d{3,}$")
-EXPORT_FILES = ("classification.csv", "policy.csv", "replay.csv", "run_summary.json", "validation_report.json",
+EXPORT_FILES = ("classification.csv", "policies.csv", "replay.csv", "run_summary.json", "validation_report.json",
                 "replay_events.jsonl", "agent4_agent5_evidence.json")
 PROGRESS_EVERY = 2000
 PREVIEW_ROWS = 5
@@ -43,10 +43,12 @@ RULES_CHECKED = [
     "classification.csv has the exact columns, and covers every record exactly once",
     "predicted_class is one of the five classes; anomaly_score is within 0 to 1; evidence_status is one Agent 3 produces",
     "replay.csv covers every record exactly once, with ALLOW or BLOCK only",
-    "every ALLOW has an empty applied_policy_id; every BLOCK names a known policy",
+    "every ALLOW says NONE in active_policy_id; every BLOCK names a known policy",
     "every BLOCK matches its policy's source, after activation and within expiry",
     "no record from a blocked source escaped an active policy; no policy is triggered by a blocked record",
-    "policy.csv ids are unique, with SOURCE_IP scope and BLOCK action only",
+    "policies.csv ids are unique, with SOURCE_IP scope and BLOCK action only",
+    "evidence_status is AGREE, CONFLICT or UNCERTAIN, as the stage page requires",
+    "every replay.csv row equals what the stage page's algorithm recomputes from policies.csv",
 ]
 
 
@@ -180,7 +182,7 @@ def inspect_frame(raw: pd.DataFrame, display: str, required: list[str], known: s
     report = {
         "display": display,
         "records": len(frame),
-        "columns": len(columns),
+        "columns": len(raw.columns),
         "column_names": [str(c) for c in raw.columns],
         "dtypes": {str(c): str(t) for c, t in raw.dtypes.items()},
         "missing_values": int(frame.isna().sum().sum()),
@@ -704,7 +706,7 @@ class LocalDataService:
         job.stage = "writing"
         job.emit("stage", stage="writing")
         level2.write_outputs(result, out_dir)
-        return {"mode": FULL, "records": len(scored), "order_report": scored.order_report, "causality": causality,
+        return {"mode": FULL, "tradeoff": self._tradeoff(scored.classification, result["replay"]), "records": len(scored), "order_report": scored.order_report, "causality": causality,
                 "state": result["state"], "policies": len(result["policy"]), "groups": len(result["groups"]),
                 "classes": scored.classification["predicted_class"].value_counts().to_dict(),
                 "statuses": scored.classification["evidence_status"].value_counts().to_dict(),
@@ -713,6 +715,19 @@ class LocalDataService:
                 "timestamp_regressions": engine.temporal.timestamp_regressions[:50],
                 "unattributed_records": sum(s.strip().lower() in {"", "nan", "none", "nat", "<na>"}
                                             for s in scored.inputs["source"])}
+
+    @staticmethod
+    def _tradeoff(classification: pd.DataFrame, replay: pd.DataFrame) -> dict:
+        """Containment against collateral, by Agent 1's call. The hidden set has no labels, so this is not truth."""
+        calls = classification.set_index("record_id")["predicted_class"].reindex(replay["record_id"].astype(str)).to_numpy()
+        blocked = replay["action"].to_numpy() == "BLOCK"
+        attack = calls != "BENIGN"
+        by_class = {str(c): {"allow": int(((calls == c) & ~blocked).sum()), "block": int(((calls == c) & blocked).sum())}
+                    for c in sorted(set(calls))}
+        return {"basis": "Agent 1's predicted class, not ground truth", "by_class": by_class,
+                "called_attack": int(attack.sum()), "called_attack_blocked": int((attack & blocked).sum()),
+                "called_attack_allowed": int((attack & ~blocked).sum()),
+                "called_benign": int((~attack).sum()), "called_benign_blocked": int((~attack & blocked).sum())}
 
     @staticmethod
     def _replay_progress(job: Job, engine) -> None:
@@ -777,6 +792,8 @@ class LocalDataService:
             problems += read_problems or level2.validate_outputs(
                 frames["classification"], frames["policy"], frames["replay"], meta["flow_id"], meta["source_ip"],
                 summary.get("expiry_boundary"))
+            if not read_problems:
+                problems += level2.stage_page_problems(out_dir, meta)
         else:
             frames, read_problems = level2.read_outputs(out_dir, ("classification",))
             problems += read_problems or level2.validate_classification(frames["classification"], meta["flow_id"])
@@ -787,7 +804,7 @@ class LocalDataService:
         if manifest["dataset_type"] != HIDDEN:
             blockers.append(f"this is a {manifest['dataset_type']} run, not the hidden replay set")
         if mode != FULL:
-            blockers.append("Agents 4 and 5 did not run, so policy.csv and replay.csv do not exist")
+            blockers.append("Agents 4 and 5 did not run, so policies.csv and replay.csv do not exist")
         if not settings.get("replay_schema_confirmed", False):
             blockers.append("the replay.csv header is not confirmed by the organisers")
         if not settings.get("expiry_boundary_confirmed", False):
@@ -802,6 +819,19 @@ class LocalDataService:
         (out_dir / "validation_report.json").write_text(to_json(report))
         return report
 
+    def dashboard_input(self, run_id: str):
+        """A completed run's input without labels, and its name, for the dashboard screens to replay."""
+        manifest = self.manifest(run_id)
+        summary = self._summary(run_id)
+        if summary is None or summary.get("status") != "completed":
+            raise LocalDataError(f"{run_id} has not completed", 409)
+        problems: list[str] = []
+        combined = self._assemble(manifest, summary["included_files"], problems)
+        if combined is None:
+            raise LocalDataError("; ".join(problems))
+        names = [f["name"] for f in manifest["files"]]
+        return replace(split_representations(combined), labels=None), f"{run_id} ({', '.join(names)})"
+
     def output_path(self, run_id: str, name: str) -> Path:
         self.manifest(run_id)
         if name not in EXPORT_FILES:
@@ -811,12 +841,27 @@ class LocalDataService:
             raise LocalDataError(f"{name} was not produced by {run_id}", 404)
         return path
 
-    def archive(self, run_id: str) -> Path:
+    def submission(self, run_id: str) -> list[dict]:
+        """The files the organisers ask for, in their names and headers, and whether each one exists."""
+        schema = level2.csv_schema()
+        items = []
+        for name, columns in schema.items():
+            file = level2.output_file(name)
+            path = self.outputs / run_id / file
+            rows = None
+            if path.exists():
+                with path.open() as handle:
+                    rows = max(sum(1 for _ in handle) - 1, 0)
+            items.append({"name": file, "exists": path.exists(), "rows": rows, "size": path.stat().st_size if path.exists() else None,
+                          "columns": list(columns.values())})
+        return items
+
+    def archive(self, run_id: str, submission_only: bool = False) -> Path:
         self.manifest(run_id)
-        files = self.list_outputs(run_id)
+        files = [f for f in self.submission(run_id) if f["exists"]] if submission_only else self.list_outputs(run_id)
         if not files:
             raise LocalDataError(f"{run_id} has no outputs", 404)
-        path = self.outputs / f"{run_id}_outputs.zip"
+        path = self.outputs / f"{run_id}_{'submission' if submission_only else 'outputs'}.zip"
         with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
             for item in files:
                 z.write(self.outputs / run_id / item["name"], f"{run_id}/{item['name']}")
@@ -830,10 +875,11 @@ class LocalDataService:
     def _preview(self, run_id: str) -> dict:
         previews = {}
         for name in ("classification", "policy", "replay"):
-            path = self.outputs / run_id / f"{name}.csv"
+            file = level2.output_file(name)
+            path = self.outputs / run_id / file
             if path.exists():
                 frame = pd.read_csv(path, dtype=str, keep_default_na=False, nrows=PREVIEW_ROWS)
-                previews[name] = {"columns": list(frame.columns), "rows": frame.values.tolist()}
+                previews[file] = {"columns": list(frame.columns), "rows": frame.values.tolist()}
         return previews
 
     def run_view(self, run_id: str) -> dict:
@@ -852,9 +898,9 @@ class LocalDataService:
             progress = {"state": "not_started", "stage": "not_started", "mode": None, "processed": 0, "total": 0,
                         "agents": {}, "error": None}
         view = {"run_id": run_id, "dataset_type": manifest["dataset_type"], **progress,
-                "outputs": [], "preview": {}, "summary": None, "validation": None}
+                "outputs": [], "preview": {}, "summary": None, "validation": None, "submission": []}
         if finished and summary is not None and summary.get("status") == "completed":
-            view |= {"outputs": self.list_outputs(run_id), "preview": self._preview(run_id), "summary": summary,
+            view |= {"outputs": self.list_outputs(run_id), "submission": self.submission(run_id), "preview": self._preview(run_id), "summary": summary,
                      "validation": json.loads(report_path.read_text()) if report_path.exists() else None}
         return view
 

@@ -230,6 +230,7 @@ The layout and who owns each module are in [docs/TEAM_OWNERSHIP.md](docs/TEAM_OW
 ## Documentation
 
 - [Local operator guide](docs/LOCAL_OPERATOR_GUIDE.md)
+- [Panel demonstration guide](docs/PANEL_DEMO.md)
 - [Day 2 technical flow](docs/DAY2_TECHNICAL_FLOW.md)
 - [Final test report](docs/FINAL_TEST_REPORT.md)
 - [Final implementation audit](docs/FINAL_IMPLEMENTATION_AUDIT.md)

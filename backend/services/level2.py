@@ -1,4 +1,4 @@
-"""Level 2 outputs: classification.csv, policy.csv and replay.csv, plus a checker for their rules.
+"""Level 2 outputs: classification.csv, policies.csv and replay.csv, plus a checker for their rules.
 
 Two logically separate steps. score_records rates every flow on its own, so it can be batched without
 seeing other flows, and every record gets a prediction even if replay later blocks it. replay_scored then
@@ -51,10 +51,29 @@ def order_settings(level2: dict | None = None) -> dict:
 
 
 def csv_schema(level2: dict | None = None) -> dict[str, dict[str, str]]:
-    """Logical column to the name written in each file. Only replay.csv's names are unconfirmed."""
+    """Logical column to the name written in each file. A column configured as null is left out of the file."""
     level2 = load_config().get("level2", {}) if level2 is None else level2
     names = level2.get("columns", {})
-    return {file: {c: names.get(file, {}).get(c, c) for c in columns} for file, columns in LOGICAL_COLUMNS.items()}
+    schema = {file: {c: names.get(file, {}).get(c, c) for c in columns} for file, columns in LOGICAL_COLUMNS.items()}
+    return {file: {c: name for c, name in columns.items() if name} for file, columns in schema.items()}
+
+
+def output_file(name: str, level2: dict | None = None) -> str:
+    """The name the organisers expect for a logical output: classification, policy or replay."""
+    level2 = load_config().get("level2", {}) if level2 is None else level2
+    return level2.get("files", {}).get(name, f"{name}.csv")
+
+
+def official_frame(name: str, frame: pd.DataFrame) -> pd.DataFrame:
+    """One output as the organisers' validator wants it: their column names and their values."""
+    level2 = load_config().get("level2", {})
+    columns = csv_schema(level2)[name]
+    frame = frame[list(columns)].copy()
+    if name == "classification" and level2.get("evidence_status_values"):
+        frame["evidence_status"] = frame["evidence_status"].map(level2["evidence_status_values"])
+    if name == "replay" and level2.get("no_policy_value"):
+        frame["applied_policy_id"] = frame["applied_policy_id"].replace("", level2["no_policy_value"]).fillna(level2["no_policy_value"])
+    return frame.rename(columns=columns)
 
 
 def replay_inputs(meta: pd.DataFrame, dayfirst: bool = False) -> dict[str, list]:
@@ -223,7 +242,8 @@ def validate_classification(classification: pd.DataFrame, record_ids) -> list[st
     scores = pd.to_numeric(classification["anomaly_score"], errors="coerce")
     if not (np.isfinite(scores) & scores.between(0, 1)).all():
         problems.append("classification.csv has an anomaly_score that is missing or outside 0 to 1")
-    if not set(classification["evidence_status"]) <= EVIDENCE_STATUSES:
+    official = set(load_config().get("level2", {}).get("evidence_status_values", {}).values())
+    if not set(classification["evidence_status"]) <= EVIDENCE_STATUSES | official:
         problems.append("classification.csv has an evidence_status Agent 3 does not produce")
     return problems
 
@@ -298,9 +318,8 @@ def write_outputs(result: dict, out_dir: Path) -> dict[str, Path]:
     schema = csv_schema()
     paths = {}
     for name in LOGICAL_COLUMNS:
-        frame = result[name][LOGICAL_COLUMNS[name]].rename(columns=schema[name])
-        paths[name] = out_dir / f"{name}.csv"
-        frame.to_csv(paths[name], index=False)
+        paths[name] = out_dir / output_file(name)
+        official_frame(name, result[name]).to_csv(paths[name], index=False)
     logs = {"state": result.get("state"), "order_report": result.get("order_report"),
             "expiry_boundary": result.get("expiry_boundary"), "policies": result["policies"],
             "activation_and_expiry_log": result["log"], "correlation_groups": result["groups"]}
@@ -313,8 +332,8 @@ def write_classification(classification: pd.DataFrame, out_dir: Path) -> Path:
     """classification.csv alone, for an input with no endpoints. No replay or policy file is implied."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    path = out_dir / "classification.csv"
-    classification[CLASSIFICATION_COLUMNS].rename(columns=csv_schema()["classification"]).to_csv(path, index=False)
+    path = out_dir / output_file("classification")
+    official_frame("classification", classification).to_csv(path, index=False)
     return path
 
 
@@ -324,16 +343,75 @@ def read_outputs(out_dir: Path, names: tuple[str, ...] | None = None) -> tuple[d
     for name, columns in schema.items():
         if names is not None and name not in names:
             continue
-        path = Path(out_dir) / f"{name}.csv"
+        path = Path(out_dir) / output_file(name)
         if not path.exists():
-            problems.append(f"{name}.csv is missing")
+            problems.append(f"{path.name} is missing")
             continue
         frame = pd.read_csv(path, dtype=str, keep_default_na=False)
         if list(frame.columns) != list(columns.values()):
-            problems.append(f"{name}.csv header is {list(frame.columns)}, expected {list(columns.values())}")
+            problems.append(f"{path.name} header is {list(frame.columns)}, expected {list(columns.values())}")
             continue
-        frames[name] = frame.rename(columns={official: logical for logical, official in columns.items()})
+        frame = frame.rename(columns={official: logical for logical, official in columns.items()})
+        if name == "policy" and "policy_action" not in frame:
+            frame = frame.assign(policy_action=BLOCK)  # The organisers' file omits it: every policy here blocks.
+        none = load_config().get("level2", {}).get("no_policy_value")
+        if name == "replay" and none:
+            frame["applied_policy_id"] = frame["applied_policy_id"].replace(none, "")
+        frames[name] = frame
     return frames, problems
+
+
+def stage_page_problems(out_dir: Path, meta: pd.DataFrame) -> list[str]:
+    """The stage page's published validator, applied to the raw files. meta must be in official replay order.
+
+    Separate from validate_outputs on purpose: this recomputes every replay row from the policy ledger, exactly as
+    the page describes, so a disagreement between the two checks would itself be a warning.
+    """
+    level2 = load_config().get("level2", {})
+    read = lambda name: pd.read_csv(Path(out_dir) / output_file(name, level2), dtype=str, keep_default_na=False)  # noqa: E731
+    classification, replay, policies = read("classification"), read("replay"), read("policy")
+    ids = meta["flow_id"].astype(str).tolist()
+    index = {r: i for i, r in enumerate(ids)}
+    problems: list[str] = []
+    for name, frame in (("classification", classification), ("replay", replay)):
+        if sorted(frame["record_id"]) != sorted(ids):
+            problems.append(f"{output_file(name, level2)} must have exactly one row per hidden record_id")
+    bad = set(classification["predicted_class"]) - {"BENIGN", "BRUTE_FORCE", "DOS", "DDOS", "PORT_SCAN"}
+    if bad:
+        problems.append(f"predicted_class has values the validator refuses: {sorted(bad)}")
+    bad = set(classification["evidence_status"]) - {"AGREE", "CONFLICT", "UNCERTAIN"}
+    if bad:
+        problems.append(f"evidence_status has values the validator refuses: {sorted(bad)}")
+    scores = pd.to_numeric(classification["anomaly_score"], errors="coerce")
+    if not scores.between(0, 1).all():
+        problems.append("anomaly_score must be a number from 0 to 1")
+    bad = set(replay["action"]) - {ALLOW, BLOCK}
+    if bad:
+        problems.append(f"action has values the validator refuses: {sorted(bad)}")
+    if policies["policy_id"].duplicated().any():
+        problems.append("policy_id must be unique")
+    source = meta["source_ip"].astype(str).tolist()
+    destination = meta["destination_ip"].astype(str).tolist()
+    observed = {"SOURCE_IP": set(source), "DESTINATION_IP": set(destination),
+                "SRC_DST_PAIR": {f"{s}|{d}" for s, d in zip(source, destination)}}
+    ledger = []
+    for p in policies.itertuples(index=False):
+        if p.scope_type not in observed:
+            problems.append(f"{p.policy_id}: scope_type {p.scope_type} is not allowed")
+        elif p.scope_value not in observed[p.scope_type]:
+            problems.append(f"{p.policy_id}: {p.scope_value} is not an exact observed endpoint")
+        elif p.activated_after_record_id not in index or p.expires_after_record_id not in index:
+            problems.append(f"{p.policy_id}: names a record that is not in the hidden set")
+        else:
+            ledger.append((p.policy_id, index[p.activated_after_record_id], index[p.expires_after_record_id], p.scope_type, p.scope_value))
+    submitted = dict(zip(replay["record_id"], zip(replay["action"], replay["active_policy_id"])))
+    for i, record in enumerate(ids):
+        flow = {"SOURCE_IP": source[i], "DESTINATION_IP": destination[i], "SRC_DST_PAIR": f"{source[i]}|{destination[i]}"}
+        matches = [pid for pid, start, end, kind, value in ledger if start < i <= end and flow[kind] == value]
+        expected = (BLOCK, min(matches)) if matches else (ALLOW, "NONE")
+        if record in submitted and submitted[record] != expected:
+            problems.append(f"{record}: the ledger gives {expected[0]} {expected[1]}, but replay.csv says {submitted[record][0]} {submitted[record][1]}")
+    return problems
 
 
 def validate_submission(out_dir: Path, input_path: Path, expiry_boundary: str | None = None) -> list[str]:
@@ -344,4 +422,4 @@ def validate_submission(out_dir: Path, input_path: Path, expiry_boundary: str | 
     meta = load_flows(input_path).metadata
     meta = meta.iloc[replay_order(meta)]
     return validate_outputs(frames["classification"], frames["policy"], frames["replay"], meta["flow_id"],
-                            meta["source_ip"], expiry_boundary)
+                            meta["source_ip"], expiry_boundary) + stage_page_problems(out_dir, meta)

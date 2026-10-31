@@ -280,20 +280,27 @@ def test_full_run_writes_valid_files_that_read_back_from_disk(client, tmp_path, 
     view = run_to_end(client, run_id)
     assert view["state"] == "completed", view["error"]
     assert view["processed"] == 6000 and view["mode"] == "full"
-    assert {f["name"] for f in view["outputs"]} >= {"classification.csv", "policy.csv", "replay.csv", "run_summary.json",
+    assert {f["name"] for f in view["outputs"]} >= {"classification.csv", "policies.csv", "replay.csv", "run_summary.json",
                                                     "validation_report.json", "replay_events.jsonl"}
     report = view["validation"]
     assert report["rules_passed"] and report["problems"] == [] and report["labels_read"] is False
     assert view["summary"]["models_refitted"] is False and view["summary"]["causality_problems"] == []
     # An unconfirmed schema must keep the run from being called ready, whatever the rules say.
     assert not report["submission_ready"]
-    assert any("replay.csv header" in b for b in report["blockers"]) and any("expiry" in b for b in report["blockers"])
+    assert any("expiry" in b for b in report["blockers"])
     out = tmp_path / LIMITS["outputs_dir"] / run_id
     classification = pd.read_csv(out / "classification.csv", dtype=str)
     assert list(classification.columns) == ["record_id", "predicted_class", "anomaly_score", "evidence_status"]
     assert classification["record_id"].tolist() == hidden_style["record_id"].astype(str).tolist()
-    assert list(pd.read_csv(out / "policy.csv", nrows=0).columns) == [
-        "policy_id", "activated_after_record_id", "scope_type", "scope_value", "expires_after_record_id", "policy_action"]
+    # Exactly the organisers' header-only templates, from the stage page.
+    assert (out / "classification.csv").read_text().splitlines()[0] == "record_id,predicted_class,anomaly_score,evidence_status"
+    assert (out / "policies.csv").read_text().splitlines()[0] == "policy_id,activated_after_record_id,scope_type,scope_value,expires_after_record_id"
+    assert (out / "replay.csv").read_text().splitlines()[0] == "record_id,action,active_policy_id"
+    assert not (out / "policy.csv").exists()
+    assert [(f["name"], f["exists"]) for f in view["submission"]] == [("classification.csv", True), ("policies.csv", True), ("replay.csv", True)]
+    assert view["submission"][0]["rows"] == 6000 and view["submission"][2]["rows"] == 6000
+    names = zipfile.ZipFile(io.BytesIO(client.get(f"/api/local-data/runs/{run_id}/archive?submission_only=true").content)).namelist()
+    assert sorted(names) == [f"{run_id}/classification.csv", f"{run_id}/policies.csv", f"{run_id}/replay.csv"]
     assert len(pd.read_csv(out / "replay.csv")) == 6000
 
 
@@ -303,7 +310,7 @@ def test_a_tampered_output_fails_validation(client, tmp_path, hidden_style):
     assert run_to_end(client, run_id)["validation"]["rules_passed"]
     replay = tmp_path / LIMITS["outputs_dir"] / run_id / "replay.csv"
     frame = pd.read_csv(replay, dtype=str, keep_default_na=False)
-    frame.loc[0, "applied_policy_id"] = "POL-99999"
+    frame.loc[0, "active_policy_id"] = "POL-99999"
     frame.iloc[1:].to_csv(replay, index=False)
     report = client.post(f"/api/local-data/runs/{run_id}/validate").json()
     assert not report["rules_passed"] and "does not cover every record" in " ".join(report["problems"])
@@ -319,7 +326,7 @@ def test_the_same_input_gives_identical_files_and_is_not_reprocessed_by_accident
     assert refused.status_code == 409 and first in refused.json()["detail"]
     run_to_end(client, second, allow_duplicate=True)
     root = tmp_path / LIMITS["outputs_dir"]
-    for name in ("classification.csv", "policy.csv", "replay.csv"):
+    for name in ("classification.csv", "policies.csv", "replay.csv"):
         assert (root / first / name).read_bytes() == (root / second / name).read_bytes()
 
 
@@ -335,7 +342,7 @@ def test_without_endpoints_a1_to_a3_still_run_and_no_address_is_invented(client,
     assert view["state"] == "completed", view["error"]
     assert view["agents"]["A4"]["state"] == view["agents"]["A5"]["state"] == "unavailable"
     names = {f["name"] for f in view["outputs"]}
-    assert "classification.csv" in names and not names & {"policy.csv", "replay.csv"}
+    assert "classification.csv" in names and not names & {"policies.csv", "replay.csv"}
     assert view["validation"]["rules_passed"] and not view["validation"]["submission_ready"]
     assert any("Agents 4 and 5 did not run" in b for b in view["validation"]["blockers"])
 
@@ -388,3 +395,67 @@ def test_policies_on_real_timestamps_explain_the_window_in_seconds(client, tmp_p
     assert evidence["correlation_groups"], "the synthetic fixture should form groups"
     assert all(g["evidence"]["window_basis"] == "seconds" for g in evidence["correlation_groups"])
     assert all("300 seconds" in g["correlation_reason"] for g in evidence["correlation_groups"])
+
+
+def split_time(frame: pd.DataFrame) -> pd.DataFrame:
+    """The hidden set's real time format: day plus time_offset, with no timestamp column."""
+    stamps = pd.to_datetime(frame["timestamp"], format="mixed")
+    offsets = [f"{int(t.minute):02d}:{t.second + t.microsecond / 1e6:04.1f}" for t in stamps]
+    return frame.drop(columns=["timestamp"]).assign(day=stamps.dt.strftime("%Y-%m-%d"), time_offset=offsets)
+
+
+@real_data
+def test_day_and_time_offset_give_a4_real_seconds_and_are_not_unrecognised(client, tmp_path, hidden_style):
+    run_id = stage(client, "hidden", split_time(hidden_style))
+    report = inspect(client, run_id)
+    file = report["files"][0]
+    assert report["job"]["timestamps"] and report["job"]["temporal"]["basis"] == "seconds"
+    assert file["unrecognised_columns"] == [] and report["job"]["runnable"]
+    view = run_to_end(client, run_id)
+    evidence = json.loads((tmp_path / LIMITS["outputs_dir"] / run_id / "agent4_agent5_evidence.json").read_text())
+    assert evidence["correlation_groups"] and all(g["evidence"]["window_basis"] == "seconds" for g in evidence["correlation_groups"])
+    assert view["validation"]["rules_passed"]
+
+
+def test_a_time_offset_is_read_as_minutes_and_seconds_and_bad_values_stay_missing():
+    from backend.preprocessing.data_processor import derive_timestamp
+    out = derive_timestamp(pd.DataFrame({"day": ["2017-07-04", "2017-07-04", "2017-07-05"], "time_offset": ["00:49.8", "59:06.2", "soon"]}))
+    assert out["timestamp"].tolist()[:2] == ["2017-07-04 00:00:49.800000", "2017-07-04 00:59:06.200000"]
+    assert pd.isna(out["timestamp"].iloc[2])
+
+
+@real_data
+def test_the_tradeoff_report_counts_blocks_by_agent_1s_call(client, tmp_path, hidden_style):
+    run_id = stage(client, "hidden", hidden_style)
+    view = run_to_end(client, run_id)
+    trade = view["summary"]["tradeoff"]
+    assert trade["called_attack_blocked"] + trade["called_benign_blocked"] == view["summary"]["actions"].get("BLOCK", 0)
+    assert trade["called_attack"] + trade["called_benign"] == 6000 and "not ground truth" in trade["basis"]
+
+
+@real_data
+def test_a_completed_run_can_drive_the_dashboard_with_all_five_agents(client, hidden_style):
+    saved = getattr(app.state, "cs", None)
+    try:
+        run_id = stage(client, "hidden", hidden_style)
+        assert client.post(f"/api/local-data/runs/{run_id}/open-in-dashboard").status_code == 409
+        run_to_end(client, run_id)
+        opened = client.post(f"/api/local-data/runs/{run_id}/open-in-dashboard").json()
+        assert opened["defense_available"] and opened["records"] == 6000 and run_id in opened["replay_input"]
+        status = client.get("/api/models/status").json()
+        assert status["defense_available"] and run_id in status["replay_input"]
+        app.state.cs.replay.start(speed=100000)
+        for _ in range(400):
+            replay = client.get("/api/replay/status").json()
+            if replay["status"] == "completed":
+                break
+            time.sleep(0.05)
+        assert replay["status"] == "completed" and replay["correlation_groups"] > 0 and replay["policies_activated"] > 0
+        flows = client.get("/api/flows?scope=replay&limit=500").json()["items"]
+        assert any(f["correlation_group_id"] for f in flows)
+        assert all(f.get("ground_truth_evaluation_only") is None for f in flows)
+    finally:
+        if getattr(app.state, "cs", None) is not None and app.state.cs is not saved:
+            app.state.cs.replay.stop()
+        app.state.cs = saved
+

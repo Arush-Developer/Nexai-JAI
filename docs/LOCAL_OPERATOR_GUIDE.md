@@ -103,12 +103,16 @@ If a ZIP holds several data files, untick the ones that don't belong to this job
 14. Watch the progress bar. It counts records processed in replay order.
 15. Watch the **Policy activity** table for policies activating and expiring. These are simulated: no firewall or network is touched.
 
+### See it in the Command Centre
+
+After a run, click **SHOW IN COMMAND CENTRE**, then press play in **Live Replay**. Small files replay at 2 flows a second, so you can follow them. **A4 and A5 show as off until you do this,** because the screens start on the official validation set, which has no IP addresses. Restarting the backend returns them to that set.
+
 ### 16 and 17. Review and validate
 
-16. Open "Review classification.csv", "Review policy.csv" and "Review replay.csv" to see their first rows.
+16. Open "Review classification.csv", "Review policies.csv" and "Review replay.csv" to see their first rows.
 17. Click **VALIDATE OUTPUTS**. This reads the files back from disk and checks every rule.
 
-**"Every rule passed" and "Ready to submit" are different.** The second stays off while the blockers listed under it remain. Today those include the `replay.csv` header and the expiry convention, which the organisers have not confirmed.
+**"Every rule passed" and "Ready to submit" are different.** The second stays off while the blockers listed under it remain. Today that is the expiry convention, which the organisers have not confirmed.
 
 ### 18 and 19. Export
 
@@ -122,8 +126,8 @@ If that run's folder already exists, nothing changes until you explicitly approv
 | File | Contents |
 |---|---|
 | `classification.csv` | One prediction per record, including records later blocked |
-| `policy.csv` | One row per activated policy |
-| `replay.csv` | ALLOW or BLOCK for each record, with the policy applied |
+| `policies.csv` | One row per activated policy |
+| `replay.csv` | ALLOW or BLOCK for each record, with the active policy |
 | `run_summary.json` | What was run, on which files, and the totals |
 | `validation_report.json` | Rules checked, problems and blockers |
 | `replay_events.jsonl` | Policy activations and expiries, in order |
@@ -133,12 +137,9 @@ A copy of each run's files also stays in `data/outputs/`. Your uploaded original
 
 ### 20. Submit
 
-**The upload isn't built, because the organisers' Level 2 API details aren't available yet.** Once they are:
+After a run, **Upload these files to the organisers** lists `classification.csv`, `policies.csv` and `replay.csv`, with a download button. You upload them yourself on the organisers' stage page. This app never sends them anywhere.
 
-1. Confirm the `replay.csv` header, and set `level2.columns.replay` and `level2.replay_schema_confirmed` in `configs/default.yaml`.
-2. Confirm the expiry convention, and set `level2.defense.expiry_boundary` and `level2.expiry_boundary_confirmed`.
-3. Restart, process the file again, and check that it says "Ready to submit".
-4. Submit the files the way the organisers specify.
+Before you do, confirm the expiry convention with the organisers, set `level2.defense.expiry_boundary` and `level2.expiry_boundary_confirmed` in `configs/default.yaml`, restart, and process the file again.
 
 ## When something goes wrong
 

@@ -2,20 +2,20 @@
 
 Executed on 31 October 2026, on one MacBook, in Chrome. Every result below was run. Statuses are PASS, FAIL, BLOCKED or NOT VERIFIED.
 
-**The hidden set is not released, so nothing here has run on it, and Agents 4 and 5 have never run on real endpoints.**
+**Updated after the hidden set arrived.** `cyber-hidden.zip` ran end to end in Chrome, with all five agents on its real endpoints and timestamps. Nothing has been submitted, and without labels its accuracy cannot be measured here.
 
 ## Summary
 
 | # | Item | Status | Evidence |
 |---|---|---|---|
-| 1 | Codebase health | PASS | 281 backend tests, 20 browser tests, type check and build all pass |
+| 1 | Codebase health | PASS | 285 backend tests, 21 browser tests, type check and build all pass |
 | 2 | Files repaired | PASS | See [FINAL_IMPLEMENTATION_AUDIT.md](FINAL_IMPLEMENTATION_AUDIT.md) |
 | 3 | Empty files completed | PASS, none needed | The only empty files are the 11 `__init__.py` package markers |
 | 4 | A1 | PASS on real records | 400 trees, temperature 0.8, 70 features |
 | 5 | A2 | PASS on real records | 200 trees, 167,916 benign fit rows, 36,069 calibration rows, threshold 0.95 |
 | 6 | A3 | PASS on real records | Status counts match the published evaluation |
-| 7 | A4 | PASS on synthetic data; BLOCKED on real endpoints | The pack has no endpoints or timestamps |
-| 8 | A5 | PASS on synthetic data; BLOCKED on real endpoints | The pack has no endpoints |
+| 7 | A4 | PASS on the hidden set | 2 groups, using its real endpoints and a 300-second window |
+| 8 | A5 | PASS on the hidden set | 1 policy, 92 blocks, 0 rule violations |
 | 9 | Model loading and inference | PASS | Macro-F1 0.99982 through the new path |
 | 10 | Temporal correlation | PASS on synthetic data | `tests/agents/test_temporal_correlation.py` |
 | 11 | Policy activation and expiry | PASS on synthetic data | `tests/replay/test_day2_causal_replay.py`, both conventions |
@@ -32,7 +32,7 @@ Executed on 31 October 2026, on one MacBook, in Chrome. Every result below was r
 
 | Suite | Command | Result |
 |---|---|---|
-| Backend, with real models and data | `.venv/bin/python -m pytest` | **281 passed, 0 failed, 0 skipped** |
+| Backend, with real models and data | `.venv/bin/python -m pytest` | **285 passed, 0 failed, 0 skipped** |
 | Data Manager in Chrome | `npx playwright test e2e/data-manager.spec.ts`, from `frontend/` | **3 passed**, 1 skipped (it needs the mode below) |
 | Data Manager with no dataset | `E2E_NO_DATASET=1 CYBERSENTINEL_CONFIG=<config with no eval file> npx playwright test e2e/data-manager.spec.ts` | **1 passed**, 3 skipped (they need the dataset) |
 | All other screens, the 3D Command Centre and the orchestrator in Chrome | `E2E_REPLAY_INPUT="$PWD/../data/processed/rehearsal/flows.parquet" npx playwright test e2e/app.spec.ts` | **16 passed** |
@@ -92,15 +92,15 @@ Type check, build, rendering, folder selection (see Test B), replay controls, fi
 
 | Blocker | Who can clear it | Effect |
 |---|---|---|
-| The hidden set is not released | Organisers | A4 and A5 are unproven on real endpoints. `window_seconds` (300) and the policy thresholds are untuned on real data |
-| The `replay.csv` header is unconfirmed | Organisers | Every run says "Not ready to submit" |
+| The hidden set has no labels | Nobody: this is by design | Accuracy, false positives and false blocks on it cannot be measured here. `window_seconds` (300) and the policy thresholds were not tuned on it |
+| The header templates were matched on 31 October | Done | `replay.csv` and `policies.csv` now follow them, and differ from the printed brief |
 | The expiry convention is unconfirmed | Organisers | Every run says "Not ready to submit" |
-| The Level 2 API is unknown | Organisers | There is no upload. Files are exported only |
+| The upload is on the login-protected stage page | The team | This app prepares the files, and a person uploads them |
 | Models are not in git | The team to decide | A fresh clone cannot run until `models/` is copied or rebuilt |
 | Native dialogs were not clicked by a person | Anyone, in 2 minutes | See Test B |
 | Windows was not run | A teammate on Windows | Documented commands are unproven |
 
-**Also known:** the Command Centre and other dashboard screens show the input the backend started with, by default the official validation set, not a Data Manager upload. An uploaded run is watched in the Data Manager. To see all five robots work on another file, start the backend with `CYBERSENTINEL_REPLAY_INPUT=PATH`. The Command Centre steps through the newest flow's real results at a watchable pace, since the pipeline itself scores whole batches in milliseconds. Its test checks that the orchestrator turns to each agent in turn, in headless Chrome; the look and smoothness on a real graphics card should be checked by eye. `scripts/rehearse_level2.py` invents addresses from true labels, so its report must never be presented as performance, and it was not used for Test E.
+**Also known:** the Command Centre and other dashboard screens start on the official validation set, which has no endpoints, so A4 and A5 show as off there. After a Data Manager run, **SHOW IN COMMAND CENTRE** points every screen at that run until the backend restarts. The Command Centre steps through the newest flow's real results at a watchable pace, since the pipeline itself scores whole batches in milliseconds. Its test checks that the orchestrator turns to each agent in turn, in headless Chrome; the look and smoothness on a real graphics card should be checked by eye. `scripts/rehearse_level2.py` invents addresses from true labels, so its report must never be presented as performance, and it was not used for Test E.
 
 ## Exact commands
 

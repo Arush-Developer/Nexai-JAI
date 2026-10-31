@@ -57,6 +57,10 @@ export function LiveReplayPanel({ status, flow, detail, features, reload }: {
   reload: () => void;
 }) {
   const [problem, setProblem] = useState<string | null>(null);
+  // A small file would otherwise finish in under a second, so its default pace is one a person can watch.
+  const [picked, setPicked] = useState<number | null>(null);
+  const small = (status?.total ?? 0) <= 2000;
+  const speed = picked ?? (small ? 2 : 500);
   const state = status?.status ?? "idle";
   const running = state === "running";
   const paused = state === "paused";
@@ -79,9 +83,14 @@ export function LiveReplayPanel({ status, flow, detail, features, reload }: {
         </div>
         {paused ? <IconButton aria-label="Resume replay" onClick={() => call("/replay/resume")}><StepForward size={14} /></IconButton>
           : running ? <IconButton aria-label="Pause replay" onClick={() => call("/replay/pause")}><Pause size={14} /></IconButton>
-          : <IconButton aria-label="Start replay" onClick={() => call("/replay/start", { speed: 500, batch_size: 500, limit: null, resume_saved: false })}><Play size={14} /></IconButton>}
+          : <IconButton aria-label="Start replay" title="Agents 4 and 5 work one batch ahead of the display, so a small file uses batches of 10" onClick={() => call("/replay/start", { speed, batch_size: small ? 10 : 500, limit: null, resume_saved: false })}><Play size={14} /></IconButton>}
         <IconButton aria-label="Stop replay" disabled={!running && !paused} onClick={() => call("/replay/stop")}><Square size={13} /></IconButton>
       </div>
+      <label className="flex items-center justify-between gap-2 text-[11px] text-text-3 mt-2">Speed (flows per second)
+        <select aria-label="Replay speed" value={speed} disabled={running || paused} onChange={(e) => setPicked(Number(e.target.value))} className="bg-ink-800 border border-ink-600 rounded px-1.5 py-0.5 text-text-1 num">
+          {[1, 2, 5, 20, 100, 500, 2000].map((v) => <option key={v} value={v}>{v}</option>)}
+        </select>
+      </label>
       {problem && <p className="text-xs text-crit mt-1" role="alert">{problem}</p>}
       <dl className="mt-2 border-t border-ink-700/70 pt-2">
         <Row label="Source IP" value={net.source_ip} />
@@ -223,7 +232,7 @@ export function ThreatGraphPanel({ defense }: { defense: DefenseState | null }) 
     if (!groups.length) return null;
     const hub = groups.reduce((a, b) => (b.member_count > a.member_count ? b : a));
     const blocked = (defense?.policies ?? []).some((p) => p.status === "ACTIVE" && p.scope_value === hub.scope_value);
-    const peers = groups.filter((g) => g !== hub && g.destination_ips.some((d) => hub.destination_ips.includes(d))).slice(0, 3).map((g) => g.scope_value);
+    const peers = groups.filter((g) => g.scope_value !== hub.scope_value && g.destination_ips.some((d) => hub.destination_ips.includes(d))).slice(0, 3).map((g) => g.scope_value);
     const nodes = [...hub.destination_ips.slice(0, 6 - peers.length).map((label) => ({ label, kind: "destination" })), ...[...new Set(peers)].map((label) => ({ label, kind: "source" }))];
     return { hub, blocked, nodes };
   }, [defense]);

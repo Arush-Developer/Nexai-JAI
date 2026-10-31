@@ -138,7 +138,9 @@ def detect_mode(metadata: pd.DataFrame, features: pd.DataFrame) -> tuple[str, li
 
 def _window_ids(metadata: pd.DataFrame, order: np.ndarray, config: CampaignConfig) -> np.ndarray:
     if "timestamp" in metadata:
-        ts = pd.to_datetime(metadata["timestamp"], errors="coerce").to_numpy()[order]
+        # Mixed or timezone-aware values must not crash this, and an unreadable one takes its neighbour's time.
+        parsed = pd.to_datetime(metadata["timestamp"], errors="coerce", format="mixed", utc=True).dt.tz_convert(None)
+        ts = parsed.iloc[order].ffill().bfill().to_numpy()
         seconds = (ts - ts[0]) / np.timedelta64(1, "s")
         return (seconds // config.window_seconds).astype(np.int64)
     return np.arange(len(order)) // config.window_flows

@@ -1,5 +1,6 @@
 import { CheckCircle2, CircleDashed, FolderOpen, FolderOutput, Loader2, MinusCircle, XCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Btn, Empty, Notice, Page, Panel, Stat, TableWrap, Tag, fmt, tdCls, thCls } from "../components/ui";
 import { post, useApi } from "../services/api";
 import {
@@ -91,6 +92,8 @@ function AgentCard({ id, agent }: { id: string; agent?: LocalAgentState }) {
 
 export function DataManager() {
   const { data: status, error: statusError } = useApi<LocalStatus>("/local-data/status");
+  const navigate = useNavigate();
+  const [opening, setOpening] = useState(false);
   const apiAvailable = useMemo(folderApiAvailable, []);
   const fallbackInput = useRef<HTMLInputElement>(null);
 
@@ -232,6 +235,14 @@ export function DataManager() {
       if (e instanceof ExistingRunFolder) { setExistingFolder(run.run_id); setExportState({}); }
       else setProblem(`Export failed, so not every file was saved: ${(e as Error).message}`);
     } finally { setExporting(false); }
+  };
+
+  const showInCommandCentre = async () => {
+    setProblem(null); setOpening(true);
+    try {
+      await post(`/local-data/runs/${run!.run_id}/open-in-dashboard`);
+      navigate("/command");
+    } catch (e) { setProblem((e as Error).message); setOpening(false); }
   };
 
   const downloadZip = () => {
@@ -397,9 +408,23 @@ export function DataManager() {
                 <Stat label="Correlation groups" value={fmt(run.summary.groups ?? 0)} />
               </div>
             )}
+            {run.summary?.tradeoff && (
+              <div className="rounded-md border border-ink-700 p-3 text-xs space-y-2" data-testid="tradeoff">
+                <p className="font-medium text-text-1">Containment against collateral</p>
+                <p className="text-text-2 num">Of {fmt(run.summary.tradeoff.called_attack)} flows Agent 1 called attacks, {fmt(run.summary.tradeoff.called_attack_blocked)} were blocked and {fmt(run.summary.tradeoff.called_attack_allowed)} were allowed. {fmt(run.summary.tradeoff.called_benign_blocked)} of {fmt(run.summary.tradeoff.called_benign)} flows it called benign were blocked: these are the possible false blocks.</p>
+                <TableWrap>
+                  <table className="w-full num">
+                    <thead><tr><th className={thCls}>Agent 1 called</th><th className={thCls}>Allowed</th><th className={thCls}>Blocked</th></tr></thead>
+                    <tbody>{Object.entries(run.summary.tradeoff.by_class).map(([name, n]) => <tr key={name}><td className={tdCls}>{name}</td><td className={tdCls}>{fmt(n.allow)}</td><td className={tdCls}>{fmt(n.block)}</td></tr>)}</tbody>
+                  </table>
+                </TableWrap>
+                <p className="text-text-3">Based on {run.summary.tradeoff.basis}. Labels stay with the organisers, so true false-positive rates cannot be measured on the hidden set.</p>
+              </div>
+            )}
+            {finished && <Btn tone="primary" disabled={opening} onClick={showInCommandCentre}>{opening && <Loader2 size={14} className="animate-spin" aria-hidden />} SHOW IN COMMAND CENTRE</Btn>}
             {Object.entries(run.preview).map(([name, table]) => (
               <details key={name} className="text-xs">
-                <summary className="cursor-pointer font-medium text-text-2">Review {name}.csv: first rows</summary>
+                <summary className="cursor-pointer font-medium text-text-2">Review {name}: first rows</summary>
                 <TableWrap>
                   <table className="w-full mt-1">
                     <thead><tr>{table.columns.map((c) => <th key={c} className={thCls}>{c}</th>)}</tr></thead>
@@ -409,6 +434,36 @@ export function DataManager() {
                 {table.rows.length === 0 && <p className="text-text-3 mt-1">Header only: this file has no rows.</p>}
               </details>
             ))}
+          </div>
+        </Panel>
+      )}
+
+      {finished && run && run.submission.length > 0 && (
+        <Panel title="Upload these files to the organisers" hint="In the names and columns from their templates. Nothing is uploaded from here: you submit them on the stage page."
+          actions={<a className="inline-flex items-center gap-1.5 rounded-md border border-accent/50 bg-accent/15 text-accent hover:bg-accent/25 px-3 py-1.5 font-medium whitespace-nowrap" href={`/api/local-data/runs/${run.run_id}/archive?submission_only=true`} download>DOWNLOAD THESE FILES</a>}>
+          <div className="space-y-3" data-testid="submission">
+            <p className="flex flex-wrap items-center gap-2 font-medium">
+              <Tag tone={validation?.submission_ready ? "good" : validation?.rules_passed ? "warn" : "crit"}>
+                {validation?.submission_ready ? "Ready to submit" : validation?.rules_passed ? "Rules passed, but check below first" : "Do not submit"}
+              </Tag>
+              <span className="text-xs text-text-3 font-normal break-all">Also saved in data/outputs/{run.run_id}/</span>
+            </p>
+            {!validation?.submission_ready && validation && validation.blockers.length > 0 && <ul className="list-disc pl-4 text-xs text-warn">{validation.blockers.map((b) => <li key={b}>{b}</li>)}</ul>}
+            <TableWrap>
+              <table className="w-full text-xs">
+                <thead><tr><th className={thCls}>File</th><th className={thCls}>Rows</th><th className={thCls}>Columns</th><th className={thCls}>Status</th></tr></thead>
+                <tbody>
+                  {run.submission.map((f) => (
+                    <tr key={f.name}>
+                      <td className={tdCls}>{f.exists ? <a className="text-accent hover:underline font-medium" href={`/api/local-data/runs/${run.run_id}/files/${f.name}`} download={f.name}>{f.name}</a> : <span className="font-medium">{f.name}</span>}</td>
+                      <td className={`${tdCls} num`}>{f.exists ? fmt(f.rows) : "–"}</td>
+                      <td className={`${tdCls} text-text-3 !whitespace-normal min-w-[220px]`}>{f.columns.join(", ")}</td>
+                      <td className={tdCls}><Tag tone={f.exists ? "good" : "crit"}>{f.exists ? "ready" : "not produced"}</Tag></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableWrap>
           </div>
         </Panel>
       )}

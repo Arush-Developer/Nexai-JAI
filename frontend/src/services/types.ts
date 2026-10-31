@@ -454,6 +454,10 @@ export interface LocalRun {
   error: string | null;
   outputs: { name: string; size: number }[];
   preview: Record<string, { columns: string[]; rows: string[][] }>;
-  summary: { records: number; seconds: number; policies?: number; groups?: number; actions?: Record<string, number> } | null;
+  summary: {
+    records: number; seconds: number; policies?: number; groups?: number; actions?: Record<string, number>;
+    tradeoff?: { basis: string; by_class: Record<string, { allow: number; block: number }>; called_attack: number; called_attack_blocked: number; called_attack_allowed: number; called_benign: number; called_benign_blocked: number };
+  } | null;
   validation: LocalValidation | null;
+  submission: { name: string; exists: boolean; rows: number | null; size: number | null; columns: string[] }[];
 }

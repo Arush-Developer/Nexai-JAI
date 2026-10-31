@@ -11,7 +11,7 @@ data:
   id_column: record_id
   label_column: label
   # Absent from the participant pack; README says they ship with the hidden set.
-  metadata_columns: [source_ip, destination_ip, source_port, destination_port, protocol, timestamp, seq]
+  metadata_columns: [source_ip, destination_ip, source_port, destination_port, protocol, timestamp, seq, day, time_offset]
   # Other spellings the hidden file might use. Lower case, with spaces already turned into underscores.
   metadata_aliases: {src_ip: source_ip, dst_ip: destination_ip, src_port: source_port, dst_port: destination_port, sequence: seq}
 
@@ -55,18 +55,22 @@ level2:
     min_attack_share: 0.60
     ttl_records: 2000
     max_ttl_records: 16000
-    # inclusive: the record named by expires_after_record_id is still blocked. exclusive: it is not.
-    # Unconfirmed by the organisers. Confirm it, and set it here.
+    # inclusive: the record named by expires_after_record_id is still blocked. The stage page confirms this.
     expiry_boundary: inclusive
-  # Set true once the organisers confirm it. Until then a run cannot be reported as ready to submit.
-  expiry_boundary_confirmed: false
-  # Set true once the organisers confirm the replay.csv header below. Until then every run prints a warning.
-  replay_schema_confirmed: false
-  # The brief writes "anomaly score" and "evidence status", and its replay.csv row repeats the policy.csv
-  # columns while its text names action and applied_policy_id. Confirm these against the organisers' API.
+  # Confirmed by the stage page, 31 October: "expiry is inclusive".
+  expiry_boundary_confirmed: true
+  # Confirmed from the organisers' replay.csv template, 31 October.
+  replay_schema_confirmed: true
+  # Names and headers from the organisers' header-only templates on the stage page, which replace the printed
+  # brief where they differ. A null column is left out of the file.
+  files: {classification: classification.csv, policy: policies.csv, replay: replay.csv}
+  # The stage page's values. Agent 3 keeps its finer statuses on the website, and these go in the file.
+  evidence_status_values: {AGREED_BENIGN: AGREE, MULTI_SIGNAL_ATTACK: AGREE, CLASSIFIER_ONLY: CONFLICT, ANOMALY_ONLY: CONFLICT, UNCERTAIN: UNCERTAIN}
+  no_policy_value: NONE
   columns:
     classification: {record_id: record_id, predicted_class: predicted_class, anomaly_score: anomaly_score, evidence_status: evidence_status}
-    replay: {record_id: record_id, action: action, applied_policy_id: applied_policy_id}
+    policy: {policy_action: null}
+    replay: {record_id: record_id, action: action, applied_policy_id: active_policy_id}
 
 # The Data Manager. Everything stays on this machine, under these repository-relative folders.
 local_data:
