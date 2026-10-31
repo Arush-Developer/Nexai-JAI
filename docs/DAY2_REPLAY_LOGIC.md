@@ -45,8 +45,8 @@ All of these must hold on the triggering record:
 - A1 calls an attack, at `min_confidence` (0.90) or above, and A3 does not say `UNCERTAIN`.
 - The source has no active policy, and STOP has not been requested.
 - A4 has a group for this source or destination.
-- The source's window has enough confident attack flows: 3 if A2 also flagged this flow, 5 if only A1 did, 2 if the destination is a converging group.
-- At least `min_attack_share` (60%) of the source's analysed flows in the window are confident attacks. This protects shared addresses.
+- The source's window has enough confident attack flows: 2 if A2 also flagged this flow or the destination is a converging group, 3 if only A1 did.
+- At least `min_attack_share` (50%) of the source's analysed flows in the window are confident attacks. This protects shared addresses.
 
 Anomaly-only evidence never creates a policy, because A2 flags about 5% of benign flows by design.
 

@@ -10,34 +10,34 @@
   },
   "chosen_tune": {
     "per_class": {
-      "attack_blocked": 0.9882421901937798,
-      "benign_blocked": 0.005945176219295123,
-      "benign_blocked_flows": 167,
+      "attack_blocked": 0.9884490724777601,
+      "benign_blocked": 0.005767176931292275,
+      "benign_blocked_flows": 162,
       "policies": 157,
-      "groups": 452
+      "groups": 335
     },
     "single_attacker": {
-      "attack_blocked": 0.996827804978967,
+      "attack_blocked": 0.9968967657402937,
       "benign_blocked": 0.01409754360982556,
       "benign_blocked_flows": 396,
       "policies": 6,
-      "groups": 315
+      "groups": 183
     }
   },
   "chosen_holdout": {
     "per_class": {
-      "attack_blocked": 0.9990072273846399,
+      "attack_blocked": 0.9992057819077118,
       "benign_blocked": 0.0044812133746983795,
       "benign_blocked_flows": 143,
       "policies": 8,
-      "groups": 203
+      "groups": 233
     },
     "single_attacker": {
-      "attack_blocked": 0.9994043364307839,
-      "benign_blocked": 0.01999310582557739,
-      "benign_blocked_flows": 638,
+      "attack_blocked": 0.9995234691446271,
+      "benign_blocked": 0.02002444298204381,
+      "benign_blocked_flows": 639,
       "policies": 6,
-      "groups": 188
+      "groups": 224
     }
   },
   "previous": {
@@ -48,34 +48,34 @@
   },
   "previous_tune": {
     "per_class": {
-      "attack_blocked": 0.9870353768705606,
-      "benign_blocked": 0.006443574225703097,
-      "benign_blocked_flows": 181,
+      "attack_blocked": 0.9873801806771947,
+      "benign_blocked": 0.005945176219295123,
+      "benign_blocked_flows": 167,
       "policies": 156,
-      "groups": 451
+      "groups": 334
     },
     "single_attacker": {
-      "attack_blocked": 0.9953106682297772,
+      "attack_blocked": 0.9953451486104407,
       "benign_blocked": 0.013919544321822713,
       "benign_blocked_flows": 391,
       "policies": 6,
-      "groups": 315
+      "groups": 183
     }
   },
   "previous_holdout": {
     "per_class": {
-      "attack_blocked": 0.9985704074338814,
-      "benign_blocked": 0.0045438876876312245,
-      "benign_blocked_flows": 145,
+      "attack_blocked": 0.9988086728615678,
+      "benign_blocked": 0.0044812133746983795,
+      "benign_blocked_flows": 143,
       "policies": 8,
-      "groups": 203
+      "groups": 233
     },
     "single_attacker": {
-      "attack_blocked": 0.9990072273846399,
-      "benign_blocked": 0.0198677571997117,
-      "benign_blocked_flows": 634,
+      "attack_blocked": 0.9992852037169406,
+      "benign_blocked": 0.01999310582557739,
+      "benign_blocked_flows": 638,
       "policies": 6,
-      "groups": 188
+      "groups": 224
     }
   },
   "top_5": [
@@ -86,7 +86,25 @@
         "min_attack_share": 0.5,
         "ttl_records": 2000
       },
-      "worst_utility": 0.9263400869298392
+      "worst_utility": 0.9264090476911659
+    },
+    {
+      "settings": {
+        "min_attack_flows_multi_signal": 2,
+        "min_attack_flows_classifier_only": 5,
+        "min_attack_share": 0.5,
+        "ttl_records": 2000
+      },
+      "worst_utility": 0.9264090476911659
+    },
+    {
+      "settings": {
+        "min_attack_flows_multi_signal": 2,
+        "min_attack_flows_classifier_only": 10,
+        "min_attack_share": 0.5,
+        "ttl_records": 2000
+      },
+      "worst_utility": 0.9264090476911659
     },
     {
       "settings": {
@@ -99,30 +117,12 @@
     },
     {
       "settings": {
-        "min_attack_flows_multi_signal": 2,
-        "min_attack_flows_classifier_only": 5,
-        "min_attack_share": 0.5,
-        "ttl_records": 2000
-      },
-      "worst_utility": 0.9261676850265221
-    },
-    {
-      "settings": {
         "min_attack_flows_multi_signal": 3,
         "min_attack_flows_classifier_only": 5,
         "min_attack_share": 0.5,
         "ttl_records": 2000
       },
-      "worst_utility": 0.9261332046458588
-    },
-    {
-      "settings": {
-        "min_attack_flows_multi_signal": 5,
-        "min_attack_flows_classifier_only": 3,
-        "min_attack_share": 0.5,
-        "ttl_records": 2000
-      },
-      "worst_utility": 0.9260987242651953
+      "worst_utility": 0.9262711261685124
     }
   ]
 }

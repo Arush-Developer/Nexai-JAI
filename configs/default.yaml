@@ -30,11 +30,8 @@ labels:
     DDOS: DDOS
     PORT_SCAN: PORT_SCAN
 
-# Level 2: Agents 4 and 5, and the three hidden-set CSVs. No endpoint data exists in the participant
-# pack, so these thresholds were compared on synthetic address layouts only (scripts/tune_level2.py,
-# data/reports/level2_tuning.json). The best grid point beat these values by 0.0006 in the objective, at the
-# grid's aggressive edge, which is not enough to justify blocking more readily, so they were kept.
-# Revisit once the hidden set's metadata can be inspected, without using any labels.
+# Level 2: Agents 4 and 5, and the three hidden-set CSVs. The labelled pack has no endpoints, so these thresholds were
+# compared on synthetic address layouts of validation flows (scripts/tune_level2.py, data/reports/level2_tuning.json).
 level2:
   replay_order:
     on_conflict: error  # error or report. See docs/DAY2_REPLAY_LOGIC.md before changing it on the day.
@@ -49,10 +46,11 @@ level2:
     converging_min_sources: 10
   defense:
     min_confidence: 0.90
-    min_attack_flows_multi_signal: 3
-    min_attack_flows_classifier_only: 5
+    # Chosen by scripts/tune_level2.py on the labelled validation set. See data/reports/level2_tuning.json.
+    min_attack_flows_multi_signal: 2
+    min_attack_flows_classifier_only: 3
     min_attack_flows_converging: 2
-    min_attack_share: 0.60
+    min_attack_share: 0.50
     ttl_records: 2000
     max_ttl_records: 16000
     # inclusive: the record named by expires_after_record_id is still blocked. The stage page confirms this.

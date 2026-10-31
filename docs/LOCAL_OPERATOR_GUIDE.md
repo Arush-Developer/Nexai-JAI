@@ -76,7 +76,7 @@ npm --prefix frontend run dev -- --host 127.0.0.1 --port 5173 --strictPort
 
 ### 5. Open the website
 
-Go to **http://localhost:5173/data** in Chrome. In the side menu, this screen is called **Dataset**. The other screens show the official validation set, and need the dataset extracted. The Data Manager does not.
+Go to **http://localhost:5173** in Chrome. Nothing is preloaded, so it opens the Data Manager, called **Dataset** in the side menu, and asks for data.
 
 ### 6 to 8. Choose your input
 
@@ -101,7 +101,7 @@ If a ZIP holds several data files, untick the ones that don't belong to this job
 
 ### See it in the Command Centre
 
-After a run, click **SHOW IN COMMAND CENTRE**, then press play in **Live Replay**. Small files replay at 2 flows a second, so you can follow them. **A4 and A5 show as off until you do this,** because the screens start on the official validation set, which has no IP addresses. Restarting the backend returns them to that set.
+A finished run becomes what every screen shows. Click **SHOW IN COMMAND CENTRE**, then press play in **Live Replay**. Small files replay at 2 flows a second, so you can follow them. Model Lab reports on the same data: it shows accuracy if the file has labels, and says it can't be measured if not. Restarting the backend clears this, and the app asks for data again.
 
 ### 16 and 17. Review and validate
 

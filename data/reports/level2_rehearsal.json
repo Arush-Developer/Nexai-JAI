@@ -5,13 +5,13 @@
   "rule_violations": [],
   "policies": 164,
   "correlation_groups": 578,
-  "attack_flows_blocked_share": 0.9927100250996604,
-  "benign_flows_blocked_share": 0.005199913334777754,
-  "benign_flows_blocked": 312,
+  "attack_flows_blocked_share": 0.993485161671342,
+  "benign_flows_blocked_share": 0.005116581390310161,
+  "benign_flows_blocked": 307,
   "attack_blocked_share_by_class": {
-    "BRUTE_FORCE": 0.9761560693641619,
-    "DDOS": 0.9777777777777777,
-    "DOS": 0.999125,
-    "PORT_SCAN": 0.9985416666666667
+    "BRUTE_FORCE": 0.986271676300578,
+    "DDOS": 0.97875,
+    "DOS": 0.9994166666666666,
+    "PORT_SCAN": 0.9990277777777777
   }
 }

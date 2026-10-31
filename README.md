@@ -44,20 +44,20 @@ No model or threshold was tuned on these. Regenerate with `scripts/evaluate.py`;
 
 | Metric | Value |
 |---|---|
-| Accuracy | 0.99995 |
-| Macro-F1 | 0.99982 |
-| False-positive rate (benign called attack) | 0.0050% |
+| Accuracy | 0.99996 |
+| Macro-F1 | 0.99990 |
+| False-positive rate (benign called attack) | 0.0017% |
 | False-negative rate (attack called benign) | 0.0055% |
 
 | Class | Precision | Recall | F1 | Support |
 |---|---:|---:|---:|---:|
-| BENIGN | 0.99995 | 0.99995 | 0.99995 | 60,001 |
-| BRUTE_FORCE | 1.00000 | 0.99855 | 0.99928 | 1,384 |
-| DOS | 0.99992 | 1.00000 | 0.99996 | 24,000 |
+| BENIGN | 0.99995 | 0.99998 | 0.99997 | 60,001 |
+| BRUTE_FORCE | 1.00000 | 0.99928 | 0.99964 | 1,384 |
+| DOS | 0.99996 | 1.00000 | 0.99998 | 24,000 |
 | DDOS | 1.00000 | 1.00000 | 1.00000 | 14,400 |
-| PORT_SCAN | 0.99993 | 0.99993 | 0.99993 | 14,400 |
+| PORT_SCAN | 1.00000 | 0.99986 | 0.99993 | 14,400 |
 
-**A2:** ROC-AUC 0.884, recall 55.9% at a 5.0% false-positive rate. It flags 89% of DDoS and 73% of DoS flows, but only 0.07% of brute-force and 0.35% of port-scan flows.
+**A2:** ROC-AUC 0.980. At a 5.0% false-alarm rate it catches 99.99% of attacks. It trains on benign flows only, on a log scale, combining how easily a flow is isolated with how far it is from known benign flows.
 
 **The classifier score reflects this capture, not networks in general.** Each attack class has almost constant TCP fingerprints. No single feature leaks the label: removing the 25 strongest still leaves macro-F1 at 0.9996 ([leakage_audit.py](scripts/leakage_audit.py)). A harder split, fitting on early record IDs and testing on late ones, gives 0.9973.
 
@@ -66,14 +66,15 @@ No model or threshold was tuned on these. Regenerate with `scripts/evaluate.py`;
 | Measure | Result |
 |---|---|
 | A1 classes | BENIGN 100, DOS 40, DDOS 24, PORT_SCAN 24, BRUTE_FORCE 12 |
-| A3 evidence | 143 AGREE, 57 CONFLICT |
-| A4 groups | 2 |
-| A5 policies | 1: BLOCK `SOURCE_IP` 172.16.0.1, activated after F000032, through F000200 |
-| Replay | 108 ALLOW, 92 BLOCK |
+| A3 evidence | 194 AGREE, 6 CONFLICT |
+| A5 policies | 1: BLOCK `SOURCE_IP` 172.16.0.1, activated after F000020, through F000200 |
+| Replay | 103 ALLOW, 97 BLOCK |
 
-These describe what the system did, not whether it was right: the labels stay with the organisers.
+These describe what the system did. The labels stay with the organisers, so only their score can say whether it was right.
 
-**Why one policy:** all 100 attack calls come from one source, against one target, and the other 13 sources are all called benign. That policy stopped four attack phases over three days. Shorter policies would give 3 or 4, but block fewer attack calls (77 to 85 instead of 92), because each expiry lets the source through until A5 has the evidence again. The thresholds were not changed after seeing this set.
+**Why one policy:** all 100 attack calls come from one source, against one target, and the other 13 sources are all called benign. That policy stopped four attack phases over three days. Shorter policies would give several, but block fewer attack calls, because each expiry lets the source through until A5 has the evidence again.
+
+**How the settings were chosen:** A2 was selected on an internal split of the training data, and tested on the validation records. A5's thresholds were chosen by `scripts/tune_level2.py` on validation flows with invented addresses, because the labelled pack has no real ones. They replaced more cautious values after our first submission. No hidden label was read, and no model was fitted on the hidden set.
 
 ## Run it
 
@@ -92,7 +93,7 @@ npm --prefix frontend ci
 ./scripts/run_local.sh
 ```
 
-Open http://localhost:5173/data in Chrome and follow the [operator guide](docs/LOCAL_OPERATOR_GUIDE.md): choose your input folder, inspect the data, run the pipeline, and download the three files to submit.
+Open http://localhost:5173 in Chrome. Nothing is preloaded, so it asks for data first. Follow the [operator guide](docs/LOCAL_OPERATOR_GUIDE.md): choose your input folder, inspect the data, run the pipeline, and download the three files to submit. Every screen then reports on that data. Accuracy appears only when the file has labels to compare with.
 
 Without the website:
 
@@ -115,8 +116,7 @@ Run the tests:
 
 ## Known limitations
 
-- **A4 and A5 have no measured accuracy on real endpoints.** The labelled pack has no endpoints, and the hidden set has no labels. Their thresholds and the 300-second window are engineering defaults, compared only on invented addresses ([tune_level2.py](scripts/tune_level2.py)).
-- **A2 barely sees brute force or port scans,** so those decisions rest largely on A1.
+- **A4 and A5 have no measured accuracy on real endpoints in this repository.** The labelled pack has no endpoints, and the hidden set has no labels. Their thresholds were compared only on invented addresses ([tune_level2.py](scripts/tune_level2.py)), and the 300-second window is an untuned default.
 - **A policy is a blunt tool:** it blocks everything from a source, including any benign flows it sends.
 - **Without endpoints,** as in the labelled pack, A4 and A5 are off and only `classification.csv` is produced. Addresses are never invented for a real run.
 - **Live replay investigations** are capped at 5 per batch. The batch evaluation investigates all of them.

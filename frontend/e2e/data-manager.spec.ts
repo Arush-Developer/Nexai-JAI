@@ -227,8 +227,8 @@ test.describe("the real hidden file", () => {
     await page.screenshot({ path: resolve(process.env.E2E_SHOTS!, "hidden-command-done.png") });
     const card = page.getByTestId("policy-POL-00001");
     await expect(card).toContainText("172.16.0.1");
-    await expect(card).toContainText("F000032");
-    await expect(card).toContainText("92");
+    await expect(card).toContainText("F000020");
+    await expect(card).toContainText("97");
     await expect(card).toContainText("BRUTE_FORCE");
     await card.scrollIntoViewIfNeeded();
     await page.screenshot({ path: resolve(process.env.E2E_SHOTS!, "hidden-ledger.png") });
