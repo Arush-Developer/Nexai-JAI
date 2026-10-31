@@ -280,7 +280,7 @@ class AnalyseFlowRequest(BaseModel):
 # ---- Status responses -------------------------------------------------------------------------
 
 class HealthResponse(BaseModel):
-    status: Literal["ok", "loading", "unavailable"]
+    status: Literal["ok", "loading", "unavailable", "no_data"]
     detail: str | None = None
     simulated_defence_only: bool = True
 

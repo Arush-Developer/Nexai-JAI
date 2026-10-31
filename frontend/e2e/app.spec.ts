@@ -98,6 +98,7 @@ test("workbench shows agent outputs, tool calls and a rendered evidence graph", 
 test("model intelligence draws charts and the measured evaluation modes", async ({ page, request }) => {
   await page.goto("/models");
   const metrics = await (await request.get("/api/metrics")).json();
+  await page.getByTestId("reference-results").locator("summary").click();
   await expect(page.getByText("Evaluation modes")).toBeVisible();
   const macro = metrics.evaluation_report.evaluation_modes.mode_b_with_anomaly_and_fusion.macro_f1.toFixed(5);
   await expect(page.getByRole("cell", { name: macro }).first()).toBeVisible();

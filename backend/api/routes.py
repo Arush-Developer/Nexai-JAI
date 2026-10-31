@@ -13,12 +13,14 @@ from backend.schemas.contracts import (
 
 router = APIRouter(prefix="/api")
 SSE_POLL_SECONDS = 0.2
+NO_DATA = "No data is connected yet. Connect a folder in the Data Manager and run the pipeline."
 
 
 def state_of(request: Request):
     state = getattr(request.app.state, "cs", None)
     if state is None:
-        detail = getattr(request.app.state, "load_error", None) or "models are still loading"
+        loading = getattr(request.app.state, "input_expected", False)
+        detail = getattr(request.app.state, "load_error", None) or ("the input is still loading" if loading else NO_DATA)
         raise HTTPException(503, detail)
     return state
 
@@ -28,7 +30,11 @@ def health(request: Request):
     if getattr(request.app.state, "cs", None) is not None:
         return HealthResponse(status="ok")
     error = getattr(request.app.state, "load_error", None)
-    return HealthResponse(status="unavailable" if error else "loading", detail=error)
+    if error:
+        return HealthResponse(status="unavailable", detail=error)
+    if getattr(request.app.state, "input_expected", False):
+        return HealthResponse(status="loading")
+    return HealthResponse(status="no_data", detail=NO_DATA)
 
 
 @router.get("/models/status", response_model=ModelStatusResponse)

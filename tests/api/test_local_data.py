@@ -552,3 +552,51 @@ def test_agent_5_says_why_it_waits_and_why_it_acts():
     assert "triggers POL-00001" in step(2)["reason"]
     assert step(3)["reason"].startswith("BLOCK. a is under POL-00001")
 
+
+def test_nothing_is_preloaded_and_the_app_asks_for_data(monkeypatch):
+    monkeypatch.delenv("CYBERSENTINEL_REPLAY_INPUT", raising=False)
+    monkeypatch.delenv("CYBERSENTINEL_NO_AUTOLOAD", raising=False)
+    saved = getattr(app.state, "cs", None)
+    try:
+        with TestClient(app) as client:
+            assert app.state.cs is None
+            health = client.get("/api/health").json()
+            assert health["status"] == "no_data" and "Data Manager" in health["detail"]
+            response = client.get("/api/metrics")
+            assert response.status_code == 503 and "No data is connected" in response.json()["detail"]
+    finally:
+        app.state.cs = saved
+
+
+@real_data
+def test_accuracy_comes_from_the_connected_labelled_file(client, labelled):
+    saved = getattr(app.state, "cs", None)
+    try:
+        run_id = stage(client, "validation", labelled)
+        run_to_end(client, run_id)
+        client.post(f"/api/local-data/runs/{run_id}/open-in-dashboard")
+        connected = client.get("/api/metrics").json()["connected"]
+        assert connected["labelled"] and connected["rows"] == 3000 and run_id in connected["input"]
+        assert connected["evaluation"]["rows"] == 3000 and connected["evaluation"]["accuracy"] > 0.9
+        assert sum(r["flows"] for r in connected["by_class"].values()) == 3000
+        # These first records are almost all one class, and that must not break the screen.
+        assert connected["anomaly_evaluation"] is None or connected["anomaly_evaluation"]["roc_auc"] >= 0
+    finally:
+        app.state.cs = saved
+
+
+@real_data
+def test_an_unlabelled_file_never_reports_an_accuracy(client, hidden_style):
+    saved = getattr(app.state, "cs", None)
+    try:
+        run_id = stage(client, "hidden", hidden_style)
+        run_to_end(client, run_id)
+        client.post(f"/api/local-data/runs/{run_id}/open-in-dashboard")
+        connected = client.get("/api/metrics").json()["connected"]
+        assert not connected["labelled"] and connected["evaluation"] is None and connected["anomaly_evaluation"] is None
+        assert connected["rows"] == 6000
+    finally:
+        if getattr(app.state, "cs", None) is not None and app.state.cs is not saved:
+            app.state.cs.replay.stop()
+        app.state.cs = saved
+

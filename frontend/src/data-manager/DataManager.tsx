@@ -93,7 +93,9 @@ function AgentCard({ id, agent }: { id: string; agent?: LocalAgentState }) {
 export function DataManager() {
   const { data: status, error: statusError } = useApi<LocalStatus>("/local-data/status");
   const navigate = useNavigate();
+  const connection = useApi<{ status: string }>("/health", 3000);
   const [opening, setOpening] = useState(false);
+  const [connectedRun, setConnectedRun] = useState<string | null>(null);
   const apiAvailable = useMemo(folderApiAvailable, []);
   const fallbackInput = useRef<HTMLInputElement>(null);
 
@@ -180,6 +182,10 @@ export function DataManager() {
     setRun(view);
     if (view.validation) setValidation(view.validation);
     if (view.agents && Object.keys(view.agents).length) setAgents(view.agents);
+    // A finished run becomes what every screen shows, so nothing else needs connecting.
+    if (view.state === "completed") {
+      await post(`/local-data/runs/${runId}/open-in-dashboard`).then(() => setConnectedRun(runId)).catch((e: Error) => setProblem(e.message));
+    }
   }, []);
 
   const startRun = async () => {
@@ -240,7 +246,7 @@ export function DataManager() {
   const showInCommandCentre = async () => {
     setProblem(null); setOpening(true);
     try {
-      await post(`/local-data/runs/${run!.run_id}/open-in-dashboard`);
+      if (connectedRun !== run!.run_id) await post(`/local-data/runs/${run!.run_id}/open-in-dashboard`);
       navigate("/command");
     } catch (e) { setProblem((e as Error).message); setOpening(false); }
   };
@@ -267,6 +273,10 @@ export function DataManager() {
 
   return (
     <Page title="Data Manager" subtitle="Choose your own local folders. Files go only from this browser to the backend on this computer, and nothing is uploaded anywhere else.">
+      {connection.data?.status === "no_data" && !run && (
+        <Notice tone="info" title="Start here: no data is connected">Nothing is preloaded. Connect a folder and run the pipeline, and every screen will then show results from your data.</Notice>
+      )}
+      {connectedRun && <Notice tone="info" title={`Every screen now shows ${connectedRun}`}>Model Lab shows its results. Accuracy appears only if the file has labels to compare with.</Notice>}
       {statusError && <Notice tone="crit" title="Backend unreachable">{statusError}</Notice>}
       {status && !status.ready && <Notice tone="crit" title="Saved models are not ready">{status.error}</Notice>}
       {problem && <Notice tone="crit" title="That did not work">{problem}</Notice>}

@@ -11,7 +11,16 @@ interface ClassReport {
   confusion_matrix: ConfusionData;
 }
 interface PolicyOutcome { counts: Record<string, number>; attacks_blocked_rate: number; attacks_allowed_rate: number; attacks_reviewed_rate: number; benign_allowed_rate: number; benign_blocked_rate: number; benign_reviewed_rate: number }
+interface Connected {
+  input: string; rows: number; labelled: boolean; model_version: string; anomaly_detector: string;
+  by_class: Record<string, { flows: number; flagged: number; median_anomaly_score: number }>;
+  evidence: Record<string, number>; agent_agreement_rate: number; anomaly_flagged: number; anomaly_threshold: number;
+  confidence_min: number; confidence_median: number; low_confidence_flows: number;
+  evaluation: ClassReport | null;
+  anomaly_evaluation: { roc_auc: number; recall: number; false_positive_rate: number } | null;
+}
 interface Metrics {
+  connected: Connected;
   evaluation_report: {
     model_version: string; anomaly_detector: string; agent_agreement_rate: number;
     agent1: ClassReport; system: ClassReport;
@@ -48,19 +57,113 @@ const LAYER_NAMES: Record<string, string> = {
   agent1_alone: "Agent 1 alone", agent1_plus_agent2: "+ Agent 2 anomaly", plus_campaign_intelligence: "+ Campaign intelligence", plus_investigation: "+ Investigation",
 };
 
+/** Results on the data connected right now. Accuracy needs labels, so an unlabelled file says so instead. */
+function ConnectedResults({ c }: { c: Connected }) {
+  const e = c.evaluation;
+  return (
+    <>
+      {e ? (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3" data-testid="connected-accuracy">
+            <Stat label="Accuracy" value={e.accuracy.toFixed(5)} hint={`${fmt(e.rows)} labelled records`} />
+            <Stat label="Macro-F1" value={e.macro_f1.toFixed(5)} />
+            <Stat label="Balanced accuracy" value={e.balanced_accuracy.toFixed(5)} />
+            <Stat label="False-positive rate" value={pct(e.binary_attack_false_positive_rate, 4)} hint="Benign called attack" />
+            <Stat label="False-negative rate" value={pct(e.binary_attack_false_negative_rate, 4)} hint="Attack called benign" />
+          </div>
+          <div className="grid lg:grid-cols-2 gap-3">
+            <Panel title="Per-class performance"><PerClass report={e} /></Panel>
+            <Panel title="Confusion matrix" hint="Outlined cells are errors. Shading is logarithmic."><ConfusionMatrix matrix={e.confusion_matrix} /></Panel>
+          </div>
+          {c.anomaly_evaluation && <p className="text-xs text-text-2 num">A2 on this file: ROC-AUC {c.anomaly_evaluation.roc_auc.toFixed(4)}, recall {pct(c.anomaly_evaluation.recall)} at a {pct(c.anomaly_evaluation.false_positive_rate)} false-alarm rate.</p>}
+        </>
+      ) : (
+        <Notice tone="info" title="Accuracy can't be measured on this file: it has no labels">
+          <p data-testid="no-labels">Accuracy compares predictions with true answers, and this file doesn't contain them. For the hidden set, only the organisers' score can give it. Below is what the agents actually did.</p>
+        </Notice>
+      )}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Stat label="Records" value={fmt(c.rows)} />
+        <Stat label="A1 and A2 agree" value={pct(c.agent_agreement_rate, 1)} />
+        <Stat label="A2 flagged" value={fmt(c.anomaly_flagged)} hint={`At percentile ${c.anomaly_threshold}, not a probability`} />
+        <Stat label="A1 lowest confidence" value={c.confidence_min.toFixed(4)} hint={`${fmt(c.low_confidence_flows)} flows below 0.90`} />
+      </div>
+      <div className="grid lg:grid-cols-2 gap-3">
+        <Panel title="What A1 called, and what A2 flagged" hint="Calls, not checked against truth unless the file has labels.">
+          <TableWrap>
+            <table className="w-full num" data-testid="connected-classes">
+              <thead><tr>{["A1 called", "Flows", "A2 flagged", "A2 median score"].map((h) => <th key={h} className={thCls}>{h}</th>)}</tr></thead>
+              <tbody>{Object.entries(c.by_class).map(([name, r]) => (
+                <tr key={name}>
+                  <td className={tdCls} style={{ color: CLASS_COLOR[name] }}>{name}</td>
+                  <td className={tdCls}>{fmt(r.flows)}</td>
+                  <td className={tdCls}>{fmt(r.flagged)}</td>
+                  <td className={tdCls}>{r.median_anomaly_score.toFixed(3)}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </TableWrap>
+        </Panel>
+        <Panel title="A3 evidence">
+          <BarList items={Object.entries(c.evidence).sort((a, b) => b[1] - a[1]).map(([label, value]) => ({ label, value }))} total={Math.max(c.rows, 1)} />
+        </Panel>
+      </div>
+    </>
+  );
+}
+
+function PerClass({ report }: { report: ClassReport }) {
+  return (
+    <TableWrap>
+      <table className="w-full num">
+        <thead><tr>{["Class", "Precision", "Recall", "F1", "FPR", "FNR", "Support"].map((h) => <th key={h} className={thCls}>{h}</th>)}</tr></thead>
+        <tbody>
+          {CLASSES.map((c) => {
+            const r = report.per_class[c];
+            return (
+              <tr key={c}>
+                <td className={tdCls}>{c}</td>
+                <td className={tdCls}>{r.precision.toFixed(4)}</td>
+                <td className={tdCls}>{r.recall.toFixed(4)}</td>
+                <td className={tdCls}>{r.f1.toFixed(4)}</td>
+                <td className={tdCls}>{r.false_positive_rate?.toFixed(5) ?? "–"}</td>
+                <td className={tdCls}>{r.false_negative_rate?.toFixed(5) ?? "–"}</td>
+                <td className={tdCls}>{fmt(r.support)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </TableWrap>
+  );
+}
+
 export function ModelMetrics() {
   const { data, error } = useApi<Metrics>("/metrics");
   if (error) return <Page title="Model Intelligence"><Notice tone="crit" title="Could not load metrics">{error}</Notice></Page>;
   if (!data) return <Page title="Model Intelligence"><p className="text-text-3">Loading…</p></Page>;
+  return (
+    <Page title="Model Intelligence" subtitle={`Results on the connected data: ${data.connected.input}. Model: ${data.connected.model_version}.`}>
+      <ConnectedResults c={data.connected} />
+      <details className="rounded-lg border border-ink-700 bg-ink-850 p-4" data-testid="reference-results">
+        <summary className="cursor-pointer font-medium text-text-1">How the saved models were tested before this run <span className="text-text-3 font-normal">(separate labelled records, not your connected data)</span></summary>
+        <div className="mt-4 space-y-3"><ReferenceResults data={data} /></div>
+      </details>
+    </Page>
+  );
+}
+
+function ReferenceResults({ data }: { data: Metrics }) {
   const ev = data.evaluation_report;
   const tr = data.training_report;
-  if (!ev || !tr) return <Page title="Model Intelligence"><Notice title="Reports not generated yet">Run scripts/train_models.py, scripts/calibrate_fusion.py and scripts/evaluate.py.</Notice></Page>;
+  if (!ev || !tr) return <Notice title="Reports not generated yet">Run scripts/train_models.py, scripts/calibrate_fusion.py and scripts/evaluate.py.</Notice>;
   const sys = ev.system;
 
   const dist = data.dataset?.eval.label_distribution ?? {};
 
   return (
-    <Page title="Model Intelligence" subtitle={`Measured on ${fmt(sys.rows)} official validation records, which were not used for tuning. Model: ${ev.model_version}.`}>
+    <>
+      <p className="text-xs text-text-2 num">Measured on {fmt(sys.rows)} labelled validation records, which were not used for tuning. Model: {ev.model_version}.</p>
       <Notice title="Near-perfect scores describe this capture, not networks in general">
         <p>Each attack class in this dataset comes from tools with almost constant TCP fingerprints. Removing the 25 strongest features still left macro-F1 at {data.leakage_audit ? data.leakage_audit.cumulative_top_feature_knockout.at(-1)!.macro_f1.toFixed(4) : "–"}, so no single feature is leaking the label.</p>
         <p>Fitting on early records and testing on late ones lowered macro-F1 to {tr.record_order_validation.macro_f1.toFixed(4)}, with DOS recall at {tr.record_order_validation.per_class.DOS.recall.toFixed(4)}. Expect lower scores on traffic from elsewhere.</p>
@@ -73,29 +176,7 @@ export function ModelMetrics() {
         <Stat label="False-negative rate" value={pct(sys.binary_attack_false_negative_rate, 4)} hint="Attack called benign" />
       </div>
       <div className="grid lg:grid-cols-2 gap-3">
-        <Panel title="Per-class performance">
-          <TableWrap>
-            <table className="w-full num">
-              <thead><tr>{["Class", "Precision", "Recall", "F1", "FPR", "FNR", "Support"].map((h) => <th key={h} className={thCls}>{h}</th>)}</tr></thead>
-              <tbody>
-                {CLASSES.map((c) => {
-                  const r = sys.per_class[c];
-                  return (
-                    <tr key={c}>
-                      <td className={tdCls}>{c}</td>
-                      <td className={tdCls}>{r.precision.toFixed(4)}</td>
-                      <td className={tdCls}>{r.recall.toFixed(4)}</td>
-                      <td className={tdCls}>{r.f1.toFixed(4)}</td>
-                      <td className={tdCls}>{r.false_positive_rate.toFixed(5)}</td>
-                      <td className={tdCls}>{r.false_negative_rate.toFixed(5)}</td>
-                      <td className={tdCls}>{fmt(r.support)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </TableWrap>
-        </Panel>
+        <Panel title="Per-class performance"><PerClass report={sys} /></Panel>
         <Panel title="Confusion matrix" hint="Outlined cells are errors. Shading is logarithmic.">
           <ConfusionMatrix matrix={sys.confusion_matrix} />
         </Panel>
@@ -189,6 +270,6 @@ export function ModelMetrics() {
           </dl>
         </Panel>
       </div>
-    </Page>
+    </>
   );
 }

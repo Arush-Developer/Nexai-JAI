@@ -11,6 +11,7 @@ import pandas as pd
 
 from backend.agents.fusion_agent import fusion_output
 from backend.config import load_config, resolve
+from backend.evaluation.metrics import anomaly_report, classification_report
 from backend.intelligence.evidence_engine import build_evidence_graph
 from backend.investigation.audit import AuditLog
 from backend.services.model_service import Analysis, Pipeline
@@ -20,7 +21,7 @@ from backend.replay.replay_engine import ReplayEngine
 
 SUBMITTED_FLOW_ID = "submitted"
 AUDIT_DB = "data/processed/cybersentinel.sqlite3"
-REPLAY_INPUT_ENV = "CYBERSENTINEL_REPLAY_INPUT"  # Replay this flow file instead of the official eval partition.
+REPLAY_INPUT_ENV = "CYBERSENTINEL_REPLAY_INPUT"  # Load this flow file at startup instead of waiting for data.
 REPORTS = ("training_report", "calibration_report", "evaluation_report", "leakage_audit",
            "level1_summary", "dataset_profile")
 
@@ -163,8 +164,7 @@ class AppState:
         loop = self.replay.defense
         if loop is None:
             return {"available": False, "config": {}, "policies": [], "log": [], "groups": [], "groups_total": 0,
-                    "unavailable_reason": "Agents 4 and 5 need source_ip and destination_ip. The participant pack "
-                                          "omits them; the organisers ship them with the hidden set."}
+                    "unavailable_reason": "Agents 4 and 5 need source_ip and destination_ip, and this input has none."}
         with self.replay.lock:
             groups = loop.temporal.public_groups(member_limit)
             return plain({"available": True, "unavailable_reason": None, "config": loop.defense.config.to_dict(),
@@ -351,8 +351,36 @@ class AppState:
         path = resolve(load_config()["data"]["reports_dir"]) / f"{name}.json"
         return json.loads(path.read_text()) if path.exists() else None
 
+    def connected_metrics(self) -> dict:
+        """Measured on the data now connected. Accuracy exists only when that data has labels to compare with."""
+        analysis, pipe = self.analysis, self.pipeline
+        frame = analysis.frame
+        classes = pipe.threat.classes
+        labels = analysis.partition.labels
+        status = pipe.fuse_level1(analysis.proba, analysis.scores).evidence_status
+        flagged = analysis.scores >= pipe.anomaly.threshold
+        confidence = frame["threat_confidence"].to_numpy()
+        predicted = frame["final_class"].to_numpy()
+        by_class = {c: {"flows": int((predicted == c).sum()), "flagged": int(flagged[predicted == c].sum()),
+                        "median_anomaly_score": float(np.median(analysis.scores[predicted == c]))}
+                    for c in classes if (predicted == c).any()}
+        out = {"input": self.replay_input, "rows": int(len(frame)), "labelled": labels is not None, "by_class": by_class,
+               "evidence": pd.Series(status).value_counts().to_dict(), "agent_agreement_rate": float((frame["agreement"] == "AGREE").mean()),
+               "anomaly_flagged": int(flagged.sum()), "anomaly_threshold": float(pipe.anomaly.threshold),
+               "confidence_min": float(confidence.min()), "confidence_median": float(np.median(confidence)),
+               "low_confidence_flows": int((confidence < 0.9).sum()), "model_version": pipe.threat.model_version,
+               "anomaly_detector": pipe.anomaly.detector, "evaluation": None, "anomaly_evaluation": None}
+        if labels is not None:
+            truth = labels.to_numpy()
+            out["evaluation"] = classification_report(truth, predicted, classes)
+            attack = truth != "BENIGN"
+            if attack.any() and not attack.all():  # AUC needs both attack and benign flows to compare.
+                out["anomaly_evaluation"] = anomaly_report(attack, analysis.scores, flagged)
+        return plain(out)
+
     def metrics(self) -> dict:
         out = {name: self.report(name) for name in REPORTS if name != "dataset_profile"}
+        out["connected"] = self.connected_metrics()
         profile = self.report("dataset_profile")
         if profile:
             out["dataset"] = {

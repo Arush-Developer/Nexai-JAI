@@ -29,7 +29,7 @@ export function LiveFlowFeed({ flows }: { flows: ReplayFlowEvent[] }) {
             </table>
           </div>
         </TableWrap>
-      ) : <Empty title="No flows streamed in this session">Press Start to replay validation records.</Empty>}
+      ) : <Empty title="No flows streamed in this session">Press Start to replay the connected data.</Empty>}
     </Panel>
   );
 }

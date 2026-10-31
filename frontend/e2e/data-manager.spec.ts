@@ -247,8 +247,10 @@ test.describe("the real hidden file", () => {
 test.describe("no copy of the dataset", () => {
   test.skip(!noDataset, "Run with E2E_NO_DATASET=1 and a config whose eval partition does not exist.");
   test("other screens explain the problem, and the Data Manager still runs the pipeline", async ({ page }) => {
-    await page.goto("/command");
-    await expect(page.getByText("Backend could not load models")).toBeVisible({ timeout: 60_000 });
+    // Nothing is preloaded: every screen leads to the Data Manager, which asks for data.
+    await page.goto("/models");
+    await expect(page).toHaveURL(/\/data/, { timeout: 30_000 });
+    await expect(page.getByText("Start here: no data is connected")).toBeVisible();
     await page.addInitScript(() => { delete (window as unknown as Record<string, unknown>).showDirectoryPicker; delete (Window.prototype as unknown as Record<string, unknown>).showDirectoryPicker; });
     await page.goto("/data");
     await expect(page.getByRole("heading", { name: "Data Manager" })).toBeVisible();
@@ -257,5 +259,11 @@ test.describe("no copy of the dataset", () => {
     await chooseType(page, "hidden");
     await runPipeline(page);
     await expect(page.getByTestId("validation")).toContainText("Every rule passed");
+    // The run is now what every screen reports.
+    await expect(page.getByText(/Every screen now shows RUN_/)).toBeVisible();
+    await page.getByRole("link", { name: "Model Lab" }).click();
+    await expect(page.getByTestId("no-labels")).toBeVisible();
+    await expect(page.getByTestId("connected-accuracy")).toHaveCount(0);
+    await expect(page.getByTestId("connected-classes")).toContainText("BENIGN");
   });
 });

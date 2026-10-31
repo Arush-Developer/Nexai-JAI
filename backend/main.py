@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.local_data import router as local_data_router
 from backend.api.routes import router
-from backend.services.app_state import AppState
+from backend.services.app_state import REPLAY_INPUT_ENV, AppState
 
 
 def _load(app: FastAPI) -> None:
@@ -24,7 +24,9 @@ def _load(app: FastAPI) -> None:
 async def lifespan(app: FastAPI):
     app.state.cs = None
     app.state.load_error = None
-    if not os.environ.get("CYBERSENTINEL_NO_AUTOLOAD"):  # Tests install their own non-persisting state.
+    # The app starts empty and asks for data. It loads at startup only when told exactly which file to use.
+    app.state.input_expected = bool(os.environ.get(REPLAY_INPUT_ENV)) and not os.environ.get("CYBERSENTINEL_NO_AUTOLOAD")
+    if app.state.input_expected:
         threading.Thread(target=_load, args=(app,), daemon=True).start()
     yield
     if app.state.cs is not None:

@@ -7,7 +7,7 @@ export function ReplayInputNotice({ input }: { input: string }) {
   if (input === OFFICIAL) return null;
   const rehearsal = input.includes("rehearsal");
   return (
-    <Notice tone="warn" title={rehearsal ? "Rehearsal input with invented addresses" : "Not the official validation partition"}>
+    <Notice tone="warn" title={rehearsal ? "Rehearsal input with invented addresses" : "Connected data"}>
       {rehearsal
         ? "These are real flows, but their source and destination addresses were invented for testing. Results here show the mechanism, not expected performance."
         : `Replaying ${input}.`}

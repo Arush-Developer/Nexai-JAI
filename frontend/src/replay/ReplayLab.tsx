@@ -30,7 +30,7 @@ export function ReplayLab() {
       {models && <ReplayInputNotice input={models.replay_input} />}
       {(error || problem) && <Notice tone="crit" title="Replay request failed">{problem ?? error}</Notice>}
       {status?.campaign_mode === "cohort" && (
-        <Notice tone="info" title="Record order stands in for time">The pack has no timestamps or sequence numbers, so flows replay in record_id order. This is not verified chronology.</Notice>
+        <Notice tone="info" title="Record order stands in for time">This input has no timestamps or sequence numbers, so flows replay in file order. This is not verified chronology.</Notice>
       )}
       <Panel>
         <ReplayControls status={status} connected={stream.connected} call={call} />

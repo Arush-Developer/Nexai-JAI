@@ -853,7 +853,13 @@ class LocalDataService:
         if combined is None:
             raise LocalDataError("; ".join(problems))
         names = [f["name"] for f in manifest["files"]]
-        return replace(split_representations(combined), labels=None), f"{run_id} ({', '.join(names)})"
+        try:
+            partition = split_representations(combined)
+        except ValueError as exc:
+            raise LocalDataError(str(exc)) from exc
+        # Only a file declared labelled keeps its labels, to score finished predictions. No agent reads them.
+        labels = partition.labels if manifest["dataset_type"] == VALIDATION else None
+        return replace(partition, labels=labels), f"{run_id} ({', '.join(names)})"
 
     def output_path(self, run_id: str, name: str) -> Path:
         self.manifest(run_id)
