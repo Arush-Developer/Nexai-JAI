@@ -1,3 +1,4 @@
+import { Component, type ReactNode } from "react";
 import { BarList, CLASS_COLOR, Notice, Page, Panel, Stat, TableWrap, fmt, pct, tdCls, thCls } from "../components/ui";
 import { useApi } from "../services/api";
 import { CLASSES } from "../services/types";
@@ -57,6 +58,16 @@ const LAYER_NAMES: Record<string, string> = {
   agent1_alone: "Agent 1 alone", agent1_plus_agent2: "+ Agent 2 anomaly", plus_campaign_intelligence: "+ Campaign intelligence", plus_investigation: "+ Investigation",
 };
 
+/** A damaged report must not take the whole screen down with it. */
+class ReportGuard extends Component<{ children: ReactNode }, { failed: string | null }> {
+  state = { failed: null as string | null };
+  static getDerivedStateFromError(error: Error) { return { failed: error.message }; }
+  render() {
+    if (this.state.failed) return <Notice title="These saved reports could not be shown">{this.state.failed}. Rebuild them with scripts/run_all.sh. Results on your connected data above are not affected.</Notice>;
+    return this.props.children;
+  }
+}
+
 /** Results on the data connected right now. Accuracy needs labels, so an unlabelled file says so instead. */
 function ConnectedResults({ c }: { c: Connected }) {
   const e = c.evaluation;
@@ -79,7 +90,7 @@ function ConnectedResults({ c }: { c: Connected }) {
         </>
       ) : (
         <Notice tone="info" title="Accuracy can't be measured on this file: it has no labels">
-          <p data-testid="no-labels">Accuracy compares predictions with true answers, and this file doesn't contain them. For the hidden set, only the organisers' score can give it. Below is what the agents actually did.</p>
+          <p data-testid="no-labels">Accuracy compares predictions with true answers, and this file doesn't contain them. For the hidden set, only the organisers can score it: upload the three files on their <a className="underline text-accent" href="https://c-thon.vercel.app/cyber/L2" target="_blank" rel="noreferrer">stage page</a>, and the score appears there. Below is what the agents actually did. To see accuracy here, connect the labelled validation file instead.</p>
         </Notice>
       )}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -142,12 +153,13 @@ export function ModelMetrics() {
   const { data, error } = useApi<Metrics>("/metrics");
   if (error) return <Page title="Model Intelligence"><Notice tone="crit" title="Could not load metrics">{error}</Notice></Page>;
   if (!data) return <Page title="Model Intelligence"><p className="text-text-3">Loading…</p></Page>;
+  if (!data.connected) return <Page title="Model Intelligence"><Notice tone="crit" title="The backend is out of date">Restart the app: press Ctrl+C in its terminal, then run ./scripts/run_local.sh.</Notice></Page>;
   return (
     <Page title="Model Intelligence" subtitle={`Results on the connected data: ${data.connected.input}. Model: ${data.connected.model_version}.`}>
       <ConnectedResults c={data.connected} />
       <details className="rounded-lg border border-ink-700 bg-ink-850 p-4" data-testid="reference-results">
         <summary className="cursor-pointer font-medium text-text-1">How the saved models were tested before this run <span className="text-text-3 font-normal">(separate labelled records, not your connected data)</span></summary>
-        <div className="mt-4 space-y-3"><ReferenceResults data={data} /></div>
+        <div className="mt-4 space-y-3"><ReportGuard><ReferenceResults data={data} /></ReportGuard></div>
       </details>
     </Page>
   );

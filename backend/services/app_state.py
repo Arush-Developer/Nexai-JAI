@@ -349,7 +349,10 @@ class AppState:
     # ---- Reports ----------------------------------------------------------------------------------
     def report(self, name: str) -> dict | None:
         path = resolve(load_config()["data"]["reports_dir"]) / f"{name}.json"
-        return json.loads(path.read_text()) if path.exists() else None
+        try:
+            return json.loads(path.read_text()) if path.exists() else None
+        except json.JSONDecodeError:  # Half-written during a rebuild. Reported as missing rather than failing the screen.
+            return None
 
     def connected_metrics(self) -> dict:
         """Measured on the data now connected. Accuracy exists only when that data has labels to compare with."""
