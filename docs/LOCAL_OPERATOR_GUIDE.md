@@ -112,7 +112,7 @@ After a run, click **SHOW IN COMMAND CENTRE**, then press play in **Live Replay*
 16. Open "Review classification.csv", "Review policies.csv" and "Review replay.csv" to see their first rows.
 17. Click **VALIDATE OUTPUTS**. This reads the files back from disk and checks every rule.
 
-**"Every rule passed" and "Ready to submit" are different.** The second stays off while the blockers listed under it remain. Today that is the expiry convention, which the organisers have not confirmed.
+**"Every rule passed" and "Ready to submit" are different.** The second stays off while any blocker listed under it remains. For example, a validation run can pass every rule but is not the hidden set.
 
 ### 18 and 19. Export
 
@@ -139,7 +139,7 @@ A copy of each run's files also stays in `data/outputs/`. Your uploaded original
 
 After a run, **Upload these files to the organisers** lists `classification.csv`, `policies.csv` and `replay.csv`, with a download button. You upload them yourself on the organisers' stage page. This app never sends them anywhere.
 
-Before you do, confirm the expiry convention with the organisers, set `level2.defense.expiry_boundary` and `level2.expiry_boundary_confirmed` in `configs/default.yaml`, restart, and process the file again.
+The files follow the rules on the organisers' stage page, and **VALIDATE OUTPUTS** applies them. The latest valid submission is the one that counts.
 
 ## When something goes wrong
 

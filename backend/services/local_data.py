@@ -37,6 +37,8 @@ RUN_ID = re.compile(r"^RUN_\d{4}_\d{3,}$")
 EXPORT_FILES = ("classification.csv", "policies.csv", "replay.csv", "run_summary.json", "validation_report.json",
                 "replay_events.jsonl", "agent4_agent5_evidence.json")
 PROGRESS_EVERY = 2000
+POLICY_LENGTHS = (50, 30, 20, 10)  # Replay positions, compared in the what-if table only.
+OPTION_LIMIT_RECORDS = 20000
 PREVIEW_ROWS = 5
 CHUNK = 1024 * 1024
 RULES_CHECKED = [
@@ -706,7 +708,8 @@ class LocalDataService:
         job.stage = "writing"
         job.emit("stage", stage="writing")
         level2.write_outputs(result, out_dir)
-        return {"mode": FULL, "tradeoff": self._tradeoff(scored.classification, result["replay"]), "records": len(scored), "order_report": scored.order_report, "causality": causality,
+        return {"mode": FULL, "tradeoff": self._tradeoff(scored.classification, result["replay"]),
+                "policy_options": self._policy_options(scored, result), "records": len(scored), "order_report": scored.order_report, "causality": causality,
                 "state": result["state"], "policies": len(result["policy"]), "groups": len(result["groups"]),
                 "classes": scored.classification["predicted_class"].value_counts().to_dict(),
                 "statuses": scored.classification["evidence_status"].value_counts().to_dict(),
@@ -715,6 +718,26 @@ class LocalDataService:
                 "timestamp_regressions": engine.temporal.timestamp_regressions[:50],
                 "unattributed_records": sum(s.strip().lower() in {"", "nan", "none", "nat", "<na>"}
                                             for s in scored.inputs["source"])}
+
+    @classmethod
+    def _policy_options(cls, scored, result: dict) -> list[dict]:
+        """How other policy lengths would have behaved on this input. For explaining the trade-off, never for choosing."""
+        if len(scored) > OPTION_LIMIT_RECORDS:
+            return []
+        config = level2.defense_config()
+        options = []
+        for ttl in sorted({config.ttl_records, *POLICY_LENGTHS}, reverse=True):
+            if ttl == config.ttl_records:
+                replay, policy = result["replay"], result["policy"]
+            else:
+                other = replace(config, ttl_records=ttl, max_ttl_records=ttl * 8)
+                outputs = level2.replay_outputs(level2.replay_scored(scored, defense=other))
+                replay, policy = outputs["replay"], outputs["policy"]
+            trade = cls._tradeoff(scored.classification, replay)
+            options.append({"ttl_records": ttl, "submitted": ttl == config.ttl_records, "policies": len(policy),
+                            "called_attack_blocked": trade["called_attack_blocked"], "called_attack_allowed": trade["called_attack_allowed"],
+                            "called_benign_blocked": trade["called_benign_blocked"]})
+        return options
 
     @staticmethod
     def _tradeoff(classification: pd.DataFrame, replay: pd.DataFrame) -> dict:

@@ -2,6 +2,8 @@ import { Suspense, lazy, useMemo } from "react";
 import { Link } from "react-router-dom";
 import type { AgentId } from "../command/agents";
 import { ActivePoliciesPanel, AgentTracePanel, FlowDetailsPanel, LiveReplayPanel, PacingNote, ThreatGraphPanel, TimelinePanel, useFlowDetail } from "../command/HudPanels";
+import { PolicyBanner, PolicyLedger, RecentDecisions } from "../command/PolicyLedger";
+import { CorrelationGroups } from "../analytics/CorrelationGroups";
 import { useAgentFocus } from "../command/useAgentFocus";
 import { AgentStatus } from "../components/AgentStatus";
 import { BarList, CLASS_COLOR, ClassTag, DecisionBadge, Empty, Notice, Page, Panel, Stat, fmt, pct } from "../components/ui";
@@ -33,7 +35,7 @@ export function CommandCenter() {
   const stream = useReplayStream();
   const replayStatus = data?.replay.status;
   const defenseOn = data?.replay.defense_available ?? false;
-  const { focus, flow, trace, inspect } = useAgentFocus(stream.flows, stream.policies, replayStatus, defenseOn);
+  const { focus, flow, trace, narration, inspect } = useAgentFocus(stream.flows, stream.policies, replayStatus, defenseOn);
   const { detail, features } = useFlowDetail(flow?.flow_id ?? null);
   const defense = useApi<DefenseState>("/defense?member_limit=0&group_limit=200", 3000);
   const offline = useMemo(() => (defenseOn ? NONE : NO_ENDPOINTS), [defenseOn]);
@@ -49,6 +51,8 @@ export function CommandCenter() {
       <div className="grid xl:grid-cols-[minmax(0,1fr)_310px] gap-3">
         <Suspense fallback={<div className="hud-stage h-[560px] xl:h-[640px] flex items-center justify-center text-text-3">Loading the 3D view…</div>}>
           <AgentStage focus={focus} trace={trace} offline={offline}
+            banner={<PolicyBanner event={stream.policies[0]} running={replay.status === "running"} />}
+            narration={flow ? <div className="hud-tag !bg-[rgba(6,11,22,0.88)] text-[12px] text-text-1"><span className="num font-semibold text-accent">{flow.flow_id}</span>{" "}{narration ?? flow.decision_reason ?? `A1 ${flow.threat_class}, A3 ${flow.evidence_status}.`}</div> : null}
             watching={focus ? WATCHING[focus] : replay.status === "running" ? "Between steps" : `Idle. Replay ${replay.status}`}
             heading={<>
               <h1 className="text-[17px] font-semibold tracking-tight text-text-1">Command Centre</h1>
@@ -65,6 +69,11 @@ export function CommandCenter() {
         <TimelinePanel status={replay} flows={stream.flows} selected={flow?.flow_id ?? null} onSelect={inspect} />
         <FlowDetailsPanel detail={detail} features={features} />
         <ThreatGraphPanel defense={defense.data} />
+      </div>
+      <PolicyLedger />
+      <div className="grid xl:grid-cols-2 gap-3 items-start">
+        <RecentDecisions />
+        <CorrelationGroups />
       </div>
       <PacingNote />
       <ReplayInputNotice input={data.replay_input} />

@@ -171,6 +171,73 @@ class AppState:
                           "policies": loop.defense.public_policies(), "log": loop.defense.log[-500:][::-1],
                           "groups": groups[-group_limit:][::-1], "groups_total": len(groups)})
 
+    def _decision_frame(self) -> pd.DataFrame:
+        """Every record replayed so far, in replay order, with its endpoints. Later records are not included."""
+        frame = self.replay.replayed_frame()
+        if not len(frame):
+            return frame
+        rows = np.array([self.flow_row(str(f)) for f in frame["flow_id"]])
+        meta = self.analysis.partition.metadata.iloc[rows].reset_index(drop=True)
+        frame = frame.reset_index(drop=True).assign(position=np.arange(len(frame)) + 1)
+        for column in ("source_ip", "destination_ip", "destination_port", "protocol", "timestamp"):
+            frame[column] = meta[column].to_numpy() if column in meta else None
+        return frame
+
+    def decisions(self, offset: int = 0, limit: int = 50, view: str = "all", search: str | None = None) -> dict:
+        """What each agent decided for each record so far, newest first, with why."""
+        frame = self._decision_frame()
+        counts = {"all": 0, "blocked": 0, "attack_allowed": 0, "conflict": 0, "grouped": 0}
+        if not len(frame):
+            return {"total": 0, "offset": offset, "limit": limit, "counts": counts, "items": []}
+        action = frame["defense_action"] if "defense_action" in frame else pd.Series([None] * len(frame))
+        attack = frame["final_class"] != "BENIGN"
+        masks = {"all": pd.Series(True, index=frame.index), "blocked": action == "BLOCK",
+                 "attack_allowed": attack & (action != "BLOCK"), "conflict": frame["agreement"] == "DISAGREE",
+                 "grouped": frame["correlation_group_id"].notna() & (frame["correlation_group_id"] != "") if "correlation_group_id" in frame else pd.Series(False, index=frame.index)}
+        counts = {k: int(m.sum()) for k, m in masks.items()}
+        chosen = frame[masks.get(view, masks["all"])]
+        if search:
+            text = search.strip()
+            chosen = chosen[chosen["flow_id"].astype(str).str.contains(text, regex=False) | chosen["source_ip"].astype(str).str.contains(text, regex=False)]
+        page = chosen.iloc[::-1].iloc[offset:offset + limit]
+        columns = ["position", "flow_id", "source_ip", "destination_ip", "destination_port", "protocol", "timestamp", "threat_class",
+                   "threat_confidence", "anomaly_score", "is_anomaly", "agreement", "final_class", "evidence_status",
+                   "correlation_group_id", "defense_action", "applied_policy_id", "decision_reason", "policy_decision"]
+        return {"total": int(len(chosen)), "offset": offset, "limit": limit, "counts": counts,
+                "items": records(page[[c for c in columns if c in page]])}
+
+    def policy_impact(self) -> dict:
+        """For each policy: where its window sits in the replay, and what it really blocked so far."""
+        loop = self.replay.defense
+        frame = self._decision_frame()
+        snapshot = self.replay.snapshot()
+        if loop is None:
+            return {"total": snapshot["total"], "items": []}
+        items = []
+        with self.replay.lock:
+            policies = loop.defense.public_policies()
+        for policy in policies:
+            blocked = frame[frame["applied_policy_id"] == policy["policy_id"]] if len(frame) and "applied_policy_id" in frame else frame
+            trigger = frame[frame["flow_id"].astype(str) == str(policy["activated_after_record_id"])] if len(frame) else frame
+            days = pd.to_datetime(blocked["timestamp"], errors="coerce", format="mixed", utc=True).dt.strftime("%Y-%m-%d") if len(blocked) else pd.Series(dtype=str)
+            phases = (pd.DataFrame({"day": days.to_numpy(), "cls": blocked["final_class"].to_numpy(), "port": pd.to_numeric(blocked["destination_port"], errors="coerce").to_numpy()})
+                      .groupby(["day", "cls"], dropna=False).agg(flows=("port", "size"), ports=("port", "nunique")).reset_index()) if len(blocked) else None
+            items.append(plain({
+                "policy_id": policy["policy_id"], "status": policy["status"], "scope_type": policy["scope_type"],
+                "scope_value": policy["scope_value"], "policy_action": policy["policy_action"], "group_id": policy["group_id"],
+                "activated_after_record_id": policy["activated_after_record_id"],
+                "expires_after_record_id": policy["expires_after_record_id"], "ttl_records": policy["ttl_records"],
+                "rationale": policy["rationale"], "blocked_records": int(len(blocked)),
+                "activated_position": int(trigger["position"].iat[0]) if len(trigger) else None,
+                "last_blocked_record": str(blocked["flow_id"].iat[-1]) if len(blocked) else None,
+                "first_blocked_record": str(blocked["flow_id"].iat[0]) if len(blocked) else None,
+                "blocked_positions": blocked["position"].tolist()[:2000] if len(blocked) else [],
+                "by_class": blocked["final_class"].value_counts().to_dict() if len(blocked) else {},
+                "destinations": blocked["destination_ip"].astype(str).value_counts().head(5).to_dict() if len(blocked) else {},
+                "phases": phases.to_dict("records") if phases is not None else [],
+            }))
+        return {"total": snapshot["total"], "cursor": snapshot["cursor"], "items": items}
+
     def analyse_features(self, features: dict[str, float]) -> dict:
         frame = pd.DataFrame([features])
         pipe = self.pipeline

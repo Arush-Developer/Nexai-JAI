@@ -421,6 +421,26 @@ export function DataManager() {
                 <p className="text-text-3">Based on {run.summary.tradeoff.basis}. Labels stay with the organisers, so true false-positive rates cannot be measured on the hidden set.</p>
               </div>
             )}
+            {!!run.summary?.policy_options?.length && (
+              <div className="rounded-md border border-ink-700 p-3 text-xs space-y-2" data-testid="policy-options">
+                <p className="font-medium text-text-1">Why this many policies? The same file with other policy lengths</p>
+                <TableWrap>
+                  <table className="w-full num">
+                    <thead><tr><th className={thCls}>Policy length (records)</th><th className={thCls}>Policies</th><th className={thCls}>Attack calls blocked</th><th className={thCls}>Attack calls allowed</th><th className={thCls}>Benign calls blocked</th></tr></thead>
+                    <tbody>{run.summary.policy_options.map((o) => (
+                      <tr key={o.ttl_records} className={o.submitted ? "bg-accent/10" : ""}>
+                        <td className={tdCls}>{fmt(o.ttl_records)}{o.submitted && " (used)"}</td>
+                        <td className={tdCls}>{fmt(o.policies)}</td>
+                        <td className={tdCls}>{fmt(o.called_attack_blocked)}</td>
+                        <td className={tdCls}>{fmt(o.called_attack_allowed)}</td>
+                        <td className={tdCls}>{fmt(o.called_benign_blocked)}</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </TableWrap>
+                <p className="text-text-3">Shorter policies mean more of them, but each expiry lets a source through until Agent 5 has the evidence again. Counted by Agent 1's calls, not truth. For explanation only: it was not used to choose the length.</p>
+              </div>
+            )}
             {finished && <Btn tone="primary" disabled={opening} onClick={showInCommandCentre}>{opening && <Loader2 size={14} className="animate-spin" aria-hidden />} SHOW IN COMMAND CENTRE</Btn>}
             {Object.entries(run.preview).map(([name, table]) => (
               <details key={name} className="text-xs">

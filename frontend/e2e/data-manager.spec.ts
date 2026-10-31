@@ -98,8 +98,7 @@ test.describe("with the official dataset", () => {
     await expect(page.getByTestId("policy-events")).toContainText("ACTIVATED");
     await expect(page.getByTestId("policy-events")).toContainText("EXPIRED");
     await expect(page.getByTestId("validation")).toContainText("Every rule passed");
-    await expect(page.getByTestId("validation")).toContainText("Not ready to submit");
-    await expect(page.getByTestId("validation")).toContainText("expiry convention is not confirmed");
+    await expect(page.getByTestId("validation")).toContainText("Ready to submit");
   await expect(page.getByTestId("submission")).toContainText("record_id, action, active_policy_id");
   await expect(page.getByTestId("submission").getByRole("link", { name: "policies.csv" })).toBeVisible();
     await page.screenshot({ path: resolve(SHOTS, "data-manager-run.png"), fullPage: true });
@@ -127,6 +126,8 @@ test.describe("with the official dataset", () => {
     for (const name of Object.keys(written)) {
       expect(written[name], name).toBe(await (await page.request.get(`/api/local-data/runs/${runId}/files/${name}`)).text());
     }
+    expect(written["replay.csv"]).toContain(",ALLOW,NONE");
+    expect(written["classification.csv"]).toMatch(/,(AGREE|CONFLICT|UNCERTAIN)\n/);
     expect(written["classification.csv"].trim().split("\n")).toHaveLength(20001);
     expect(written["replay.csv"].trim().split("\n")[0]).toBe("record_id,action,active_policy_id");
 
@@ -217,10 +218,29 @@ test.describe("the real hidden file", () => {
     }).toPass({ timeout: 60_000, intervals: [100] });
     await expect(page.getByTestId("agent-trace")).not.toContainText("Needs source_ip");
     await expect(page.getByTestId("live-record")).toContainText("F000");
+    // The policy is announced when it really activates, and its card explains it.
+    await expect(page.getByTestId("policy-banner")).toContainText("POL-00001", { timeout: 60_000 });
+    await page.screenshot({ path: resolve(process.env.E2E_SHOTS!, "hidden-banner.png") });
     // Let the whole file replay, so the policies panel and graph show the finished state.
     await expect(page.getByTestId("replay-state")).toContainText("completed", { timeout: 150_000 });
     await page.waitForTimeout(3500);
     await page.screenshot({ path: resolve(process.env.E2E_SHOTS!, "hidden-command-done.png") });
+    const card = page.getByTestId("policy-POL-00001");
+    await expect(card).toContainText("172.16.0.1");
+    await expect(card).toContainText("F000032");
+    await expect(card).toContainText("92");
+    await expect(card).toContainText("BRUTE_FORCE");
+    await card.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: resolve(process.env.E2E_SHOTS!, "hidden-ledger.png") });
+    await page.goto("/decisions");
+    await expect(page.getByRole("heading", { name: "Agent Decisions" })).toBeVisible();
+    await expect(page.getByTestId("decision-rows")).toContainText("F000200");
+    await page.getByRole("button", { name: /Blocked/ }).click();
+    await expect(page.getByTestId("decision-rows")).toContainText("POL-00001");
+    await page.getByLabel("Filter by record or source").fill("F000034");
+    await page.getByTestId("decision-rows").getByText("F000034").click();
+    await expect(page.getByTestId("decision-detail")).toContainText("Its prediction is kept");
+    await page.screenshot({ path: resolve(process.env.E2E_SHOTS!, "hidden-decisions.png") });
   });
 });
 

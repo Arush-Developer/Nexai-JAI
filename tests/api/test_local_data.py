@@ -285,9 +285,8 @@ def test_full_run_writes_valid_files_that_read_back_from_disk(client, tmp_path, 
     report = view["validation"]
     assert report["rules_passed"] and report["problems"] == [] and report["labels_read"] is False
     assert view["summary"]["models_refitted"] is False and view["summary"]["causality_problems"] == []
-    # An unconfirmed schema must keep the run from being called ready, whatever the rules say.
-    assert not report["submission_ready"]
-    assert any("expiry" in b for b in report["blockers"])
+    # A hidden run that passes every rule, with the schema and expiry confirmed, is ready.
+    assert report["submission_ready"] and report["blockers"] == []
     out = tmp_path / LIMITS["outputs_dir"] / run_id
     classification = pd.read_csv(out / "classification.csv", dtype=str)
     assert list(classification.columns) == ["record_id", "predicted_class", "anomaly_score", "evidence_status"]
@@ -458,4 +457,98 @@ def test_a_completed_run_can_drive_the_dashboard_with_all_five_agents(client, hi
         if getattr(app.state, "cs", None) is not None and app.state.cs is not saved:
             app.state.cs.replay.stop()
         app.state.cs = saved
+
+
+def stage_page_meta():
+    return pd.DataFrame({"flow_id": ["F1", "F2", "F3", "F4", "F5"], "source_ip": ["a", "a", "b", "a", "a"], "destination_ip": ["x"] * 5})
+
+
+def write_files(out, replay, policies, status="AGREE"):
+    ids = [r[0] for r in replay]
+    (out / "classification.csv").write_text("record_id,predicted_class,anomaly_score,evidence_status\n" + "".join(f"{r},DOS,0.5,{status}\n" for r in ids))
+    (out / "replay.csv").write_text("record_id,action,active_policy_id\n" + "".join(f"{r},{a},{p}\n" for r, a, p in replay))
+    (out / "policies.csv").write_text("policy_id,activated_after_record_id,scope_type,scope_value,expires_after_record_id\n" + "".join(",".join(p) + "\n" for p in policies))
+
+
+GOOD = [("F1", "ALLOW", "NONE"), ("F2", "ALLOW", "NONE"), ("F3", "ALLOW", "NONE"), ("F4", "BLOCK", "P1"), ("F5", "ALLOW", "NONE")]
+POLICY = ("P1", "F2", "SOURCE_IP", "a", "F4")
+
+
+def test_the_stage_page_window_is_exclusive_at_activation_and_inclusive_at_expiry(tmp_path):
+    from backend.services.level2 import stage_page_problems
+    write_files(tmp_path, GOOD, [POLICY])
+    assert stage_page_problems(tmp_path, stage_page_meta()) == []
+
+
+@pytest.mark.parametrize("replay, policies, status, expected", [
+    ([("F1", "ALLOW", "")] + GOOD[1:], [POLICY], "AGREE", "the ledger gives ALLOW NONE"),
+    (GOOD, [POLICY], "AGREED_BENIGN", "evidence_status has values"),
+    (GOOD[:3] + [("F4", "ALLOW", "NONE")] + GOOD[4:], [POLICY], "AGREE", "the ledger gives BLOCK P1"),
+    (GOOD[:4] + [("F5", "BLOCK", "P1")], [POLICY], "AGREE", "the ledger gives ALLOW NONE"),
+    (GOOD[:3] + [("F4", "BLOCK", "P2")] + GOOD[4:], [POLICY, ("P2", "F2", "SOURCE_IP", "a", "F4")], "AGREE", "the ledger gives BLOCK P1"),
+    (GOOD, [("P1", "F2", "SOURCE_IP", "10.0.0.0/8", "F4")], "AGREE", "not an exact observed endpoint"),
+    (GOOD[:-1], [POLICY], "AGREE", "exactly one row per hidden record_id"),
+])
+def test_the_stage_page_validator_refuses_what_the_page_says_it_refuses(tmp_path, replay, policies, status, expected):
+    from backend.services.level2 import stage_page_problems
+    write_files(tmp_path, replay, policies, status)
+    assert expected in " ".join(stage_page_problems(tmp_path, stage_page_meta()))
+
+
+@real_data
+def test_real_output_passes_the_stage_page_validator_with_its_values(client, tmp_path, hidden_style):
+    run_id = stage(client, "hidden", hidden_style)
+    view = run_to_end(client, run_id)
+    assert view["validation"]["rules_passed"], view["validation"]["problems"]
+    out = tmp_path / LIMITS["outputs_dir"] / run_id
+    classification, replay = pd.read_csv(out / "classification.csv", keep_default_na=False), pd.read_csv(out / "replay.csv", keep_default_na=False)
+    assert set(classification["evidence_status"]) <= {"AGREE", "CONFLICT", "UNCERTAIN"}
+    assert set(replay.loc[replay["action"] == "ALLOW", "active_policy_id"]) == {"NONE"}
+
+
+@real_data
+def test_every_decision_is_explained_and_the_policy_card_matches_the_files(client, tmp_path, hidden_style):
+    saved = getattr(app.state, "cs", None)
+    try:
+        run_id = stage(client, "hidden", hidden_style)
+        view = run_to_end(client, run_id)
+        options = view["summary"]["policy_options"]
+        assert [o for o in options if o["submitted"]][0]["policies"] == view["summary"]["policies"]
+        client.post(f"/api/local-data/runs/{run_id}/open-in-dashboard")
+        app.state.cs.replay.start(speed=100000)
+        for _ in range(400):
+            if client.get("/api/replay/status").json()["status"] == "completed":
+                break
+            time.sleep(0.05)
+        page = client.get("/api/decisions?limit=500&view=all").json()
+        assert page["total"] == 6000 and page["items"][0]["position"] == 6000
+        assert all(item["decision_reason"] for item in page["items"])
+        out = tmp_path / LIMITS["outputs_dir"] / run_id
+        replay = pd.read_csv(out / "replay.csv", keep_default_na=False)
+        assert page["counts"]["blocked"] == int((replay["action"] == "BLOCK").sum())
+        blocked = client.get("/api/decisions?limit=5&view=blocked").json()["items"]
+        assert all(item["decision_reason"].startswith("BLOCK.") and item["applied_policy_id"] for item in blocked)
+        impact = client.get("/api/defense/impact").json()["items"]
+        policies = pd.read_csv(out / "policies.csv", keep_default_na=False)
+        assert [i["policy_id"] for i in impact] == policies["policy_id"].tolist()
+        for item in impact:
+            assert item["blocked_records"] == int((replay["active_policy_id"] == item["policy_id"]).sum())
+            assert sum(item["by_class"].values()) == item["blocked_records"]
+            assert sum(p["flows"] for p in item["phases"]) == item["blocked_records"]
+    finally:
+        if getattr(app.state, "cs", None) is not None and app.state.cs is not saved:
+            app.state.cs.replay.stop()
+        app.state.cs = saved
+
+
+def test_agent_5_says_why_it_waits_and_why_it_acts():
+    from backend.agents.defense_agent import DefenseConfig
+    from backend.agents.temporal_agent import TemporalConfig
+    from backend.replay.causal_replay import CausalReplayEngine
+    engine = CausalReplayEngine(TemporalConfig(window_records=50), DefenseConfig(min_attack_flows_classifier_only=3, ttl_records=2), None)
+    step = lambda i, cls="DOS": engine.step(i, f"R{i}", "a", "x", 80.0, cls, 0.99, 0.1, False, "CLASSIFIER_ONLY")  # noqa: E731
+    assert "A4 has no group yet" in step(0)["reason"]
+    assert "2 of the 3 confident attack calls needed" in step(1)["reason"]
+    assert "triggers POL-00001" in step(2)["reason"]
+    assert step(3)["reason"].startswith("BLOCK. a is under POL-00001")
 

@@ -13,13 +13,13 @@ For the team presenting CyberSentinel by NexAI to the panel. It follows the brie
 
 | The brief asks for | Show this |
 |---|---|
-| Working of all five agents | Command Centre: the orchestrator turns to each agent, and AI Agent Trace shows each one's output |
+| Working of all five agents | Command Centre: the orchestrator turns to each agent, AI Agent Trace shows each one's output, and the strip under the robots says why. **Agent Decisions** walks through any record, agent by agent |
 | Classification results | Data Manager: Review classification.csv. Also the Timeline |
 | Anomaly and evidence outputs | Flow Details, Agent Output tab. Evidence status is in the trace |
 | Temporal correlation | Policies screen: Agent 4 groups. Also the Threat Intelligence Graph |
 | Consensus | Evidence status: `MULTI_SIGNAL_ATTACK` means A1 and A2 agree on an attack, and `CLASSIFIER_ONLY` means they don't |
-| Policy activation and expiry | Active Policies, and the Data Manager's Policy activity table |
-| Sample ALLOW and BLOCK | Timeline cards, or Review replay.csv |
+| Policy activation and expiry | The banner when it activates, then the **Policy Ledger**: scope, trigger, window, why, and what it stopped by phase |
+| Sample ALLOW and BLOCK | **Agent Decisions**, using the Blocked and Attack calls allowed filters |
 | False positives, false blocks, trade-off | The numbers below, and "Containment against collateral" in the Data Manager |
 
 ## Results on the hidden set
@@ -35,6 +35,24 @@ For the team presenting CyberSentinel by NexAI to the panel. It follows the brie
 | Rule check | 0 violations, read back from disk |
 
 **These say what the system did, not whether it was right. The hidden set has no labels, so the organisers' API score is the only accuracy measure for it.**
+
+## If they ask why there is only one policy
+
+Because there is one attacker. All 100 attack calls come from one source, `172.16.0.1`, against one target, `192.168.10.50`. The other 13 sources are all called benign. A source policy per attacker is one policy. It then stopped four phases over three days: brute force, DoS, DDoS and a port scan.
+
+More policies would be worse. The Data Manager's "Why this many policies?" table reruns this file with shorter policies:
+
+| Policy length (records) | Policies | Attack calls blocked | Attack calls allowed | Benign calls blocked |
+|---|---:|---:|---:|---:|
+| 2,000 (used) | 1 | 92 | 8 | 0 |
+| 50 | 3 | 84 | 16 | 0 |
+| 30 | 3 | 85 | 15 | 0 |
+| 20 | 3 | 82 | 18 | 0 |
+| 10 | 4 | 77 | 23 | 0 |
+
+Each expiry lets the source through until A5 has the evidence again. This table explains the trade-off, and was not used to choose the length. Counts are by A1's calls.
+
+**A1 and A2 are trained models. A3, A4 and A5 are rule-based**, using evidence from the trained models. Say this plainly: rules are what make each decision explainable, and A5's reason is shown for every record.
 
 ## False positives, false blocks and the trade-off
 
@@ -52,6 +70,14 @@ For the team presenting CyberSentinel by NexAI to the panel. It follows the brie
 - Thresholds and the 300-second window are engineering defaults. They were compared only on invented addresses.
 - All blocks are simulated. Nothing touches a firewall or a network.
 
-## Before submitting
+## Submitting
 
-The Data Manager's **Upload these files to the organisers** section lists the three files: `classification.csv`, `policies.csv` and `replay.csv`, in the names and headers of the organisers' templates. These differ from the printed brief: `replay.csv` uses `active_policy_id`, and `policies.csv` has no `policy_action` column. Once the organisers confirm the expiry rule, set `level2.defense.expiry_boundary` and `level2.expiry_boundary_confirmed` in `configs/default.yaml`, restart, and process the file again.
+**Upload these files to the organisers** in the Data Manager lists `classification.csv`, `policies.csv` and `replay.csv`, in the format the stage page requires. These differ from the printed brief, and the stage page wins:
+
+- `evidence_status` is `AGREE`, `CONFLICT` or `UNCERTAIN`. Our finer A3 statuses map to them: `AGREED_BENIGN` and `MULTI_SIGNAL_ATTACK` are `AGREE`, and `CLASSIFIER_ONLY` and `ANOMALY_ONLY` are `CONFLICT`. On the hidden set that gives 143 `AGREE` and 57 `CONFLICT`.
+- An ALLOW says `NONE` in `active_policy_id`.
+- `policies.csv` has no `policy_action` column, and expiry is inclusive.
+
+The stage page scores macro-F1 (30), anomaly evidence (10), containment (25), preservation (25) and early containment (10). The latest valid submission counts, and the deadline is 31 October 2026, 11:59 pm IST.
+
+Our thresholds were not changed after seeing the hidden set. The 8 attack calls allowed before the policy activates are what early containment measures, and blocking sooner is the trade-off described above.

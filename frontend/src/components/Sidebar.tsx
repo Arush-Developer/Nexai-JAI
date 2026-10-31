@@ -1,10 +1,11 @@
-import { BarChart3, Database, FlaskConical, LayoutDashboard, Network, Search, ShieldCheck, type LucideIcon } from "lucide-react";
+import { BarChart3, Database, FlaskConical, LayoutDashboard, ListChecks, Network, Search, ShieldCheck, type LucideIcon } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useApi } from "../services/api";
 import type { ReplayStatus } from "../services/types";
 
 const NAV: { to: string; label: string; icon: LucideIcon }[] = [
   { to: "/command", label: "Command Centre", icon: LayoutDashboard },
+  { to: "/decisions", label: "Agent Decisions", icon: ListChecks },
   { to: "/replay", label: "Live Replay", icon: FlaskConical },
   { to: "/intelligence", label: "Network Graph", icon: Network },
   { to: "/defence", label: "Policies", icon: ShieldCheck },

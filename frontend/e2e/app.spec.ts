@@ -8,6 +8,7 @@ const PAGES = [
   ["/defence", "Defence & Audit"],
   ["/replay", "Replay Lab"],
   ["/data", "Data Manager"],
+  ["/decisions", "Agent Decisions"],
 ] as const;
 
 async function backendReady(request: APIRequestContext) {

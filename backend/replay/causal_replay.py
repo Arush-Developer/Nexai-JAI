@@ -33,6 +33,8 @@ class CausalReplayEngine:
         known_source = source.strip().lower() not in MISSING_ADDRESSES
         blocking = self.defense.apply_active(position, record_id, source) if known_source else None
         activated, group, suspicious = None, None, False
+        reason = (f"BLOCK. {source} is under {blocking['policy_id']}, active since {blocking['activated_after_record_id']}. "
+                  "Its prediction is kept, but it adds no new evidence.") if blocking else "ALLOW. This flow has no usable source_ip, so it cannot match a policy."
         if blocking is None and known_source:
             group = self.temporal.observe(position, record_id, source, destination, port, predicted_class, confidence,
                                           is_anomaly, evidence_status, anomaly_score, timestamp, observed_at,
@@ -40,6 +42,7 @@ class CausalReplayEngine:
             suspicious = self.temporal.last_suspicious
             activated = self.defense.consider(position, record_id, source, destination, predicted_class, confidence,
                                               anomaly_score, evidence_status, self.temporal, group)
+            reason = self.defense.last_reason
             if activated:
                 self.temporal.assert_causal(position)
         applied = blocking["policy_id"] if blocking else ""
@@ -48,7 +51,7 @@ class CausalReplayEngine:
         self.action_log.append({"position": position, "record_id": record_id, "source_ip": source, "action": action,
                                 "applied_policy_id": applied})
         return {"action": action, "applied_policy_id": applied, "activated_policy": activated, "group": group,
-                "suspicious": suspicious}
+                "suspicious": suspicious, "reason": reason}
 
     def stop(self, reason: str = "") -> None:
         """STOP: Agent 5 activates nothing further. Policies already active run to their recorded expiry."""

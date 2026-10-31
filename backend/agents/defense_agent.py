@@ -40,6 +40,7 @@ class AdaptiveDefenseAgent:
         self.policies: list[dict] = []
         self.log: list[dict] = []
         self.stopped = False
+        self.last_reason = ""  # Why the latest consider() did or did not activate a policy, for the decision log.
         self._active: dict[str, dict] = {}
         self._activations: dict[str, int] = {}
 
@@ -98,25 +99,45 @@ class AdaptiveDefenseAgent:
                  agent4: TemporalCorrelationAgent, group: dict | None) -> dict | None:
         """Step 2. Activate a policy for later records if the evidence so far justifies one."""
         cfg = self.config
-        if (self.stopped or predicted_class == "BENIGN" or evidence_status == UNCERTAIN
-                or confidence < cfg.min_confidence or source in self._active):
+        if self.stopped:
+            self.last_reason = "ALLOW. Agent 5 was stopped, so it activates no new policies."
+            return None
+        if predicted_class == "BENIGN":
+            self.last_reason = "ALLOW. No active policy matches, and A1 called it BENIGN, so it cannot trigger one."
+            return None
+        if evidence_status == UNCERTAIN:
+            self.last_reason = "ALLOW. No active policy matches, and A3 is uncertain, so it cannot trigger one."
+            return None
+        if confidence < cfg.min_confidence:
+            self.last_reason = f"ALLOW. A1's confidence {confidence:.2f} is below the {cfg.min_confidence:.2f} needed to trigger a policy."
+            return None
+        if source in self._active:
+            self.last_reason = "ALLOW. This source already has an active policy."
             return None
         evidence = agent4.source_evidence(source)
         converging = agent4.converging_group(destination)
         group = group or converging
         if group is None:
+            self.last_reason = f"ALLOW. Attack call {evidence['confident_attack_flows']} from {source}: A4 has no group yet, so there is no pattern to act on."
             return None
         multi_signal = evidence_status == MULTI_SIGNAL_ATTACK
         required = (cfg.min_attack_flows_converging if converging
                     else cfg.min_attack_flows_multi_signal if multi_signal
                     else cfg.min_attack_flows_classifier_only)
-        if evidence["confident_attack_flows"] < required or evidence["attack_share"] < cfg.min_attack_share:
+        if evidence["confident_attack_flows"] < required:
+            self.last_reason = (f"ALLOW. {evidence['confident_attack_flows']} of the {required} confident attack calls needed "
+                                f"from {source} in A4's window, so A5 keeps waiting.")
+            return None
+        if evidence["attack_share"] < cfg.min_attack_share:
+            self.last_reason = (f"ALLOW. Only {evidence['attack_share']:.0%} of flows from {source} are attack calls, below the "
+                                f"{cfg.min_attack_share:.0%} needed, which protects a shared source.")
             return None
         # expires_after_record_id must name a later record, and the file's length is not evidence.
         needs_later = 1 if cfg.expiry_boundary == INCLUSIVE else 2
         if self.total_records is not None and position + needs_later > self.total_records - 1:
             self.log.append({"event": "SKIPPED_NO_LATER_RECORD", "policy_id": "-", "record_id": record_id,
                              "position": position, "scope_value": source})
+            self.last_reason = "ALLOW. No later record exists for a new policy to apply to."
             return None
         repeats = self._activations.get(source, 0)
         ttl = min(cfg.ttl_records * 2 ** repeats, cfg.max_ttl_records)
@@ -144,6 +165,8 @@ class AdaptiveDefenseAgent:
         }
         self.policies.append(policy)
         self._active[source] = policy
+        self.last_reason = (f"ALLOW, and this flow triggers {policy['policy_id']}: {evidence['confident_attack_flows']} confident attack "
+                            f"calls reached the {required} needed. It blocks later flows from {source}, not this one.")
         self.log.append({"event": "ACTIVATED", "policy_id": policy["policy_id"], "record_id": record_id,
                          "position": position, "scope_type": "SOURCE_IP", "scope_value": source,
                          "policy_action": BLOCK, "ttl_records": ttl, "group_id": group["group_id"]})

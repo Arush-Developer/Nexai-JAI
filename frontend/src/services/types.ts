@@ -323,7 +323,56 @@ export interface ReplayFlowEvent {
   defense_action: "ALLOW" | "BLOCK" | null;
   applied_policy_id: string | null;
   correlation_group_id: string | null;
+  decision_reason: string | null;
   ground_truth_evaluation_only: string | null;
+}
+export interface DecisionRow {
+  position: number;
+  flow_id: string;
+  source_ip: string | null;
+  destination_ip: string | null;
+  destination_port: number | null;
+  protocol: string | number | null;
+  timestamp: string | null;
+  threat_class: string;
+  threat_confidence: number;
+  anomaly_score: number;
+  is_anomaly: boolean;
+  agreement: string;
+  final_class: string;
+  evidence_status: string;
+  correlation_group_id: string | null;
+  defense_action: "ALLOW" | "BLOCK" | null;
+  applied_policy_id: string | null;
+  decision_reason: string | null;
+  policy_decision: Decision;
+}
+export interface DecisionPage {
+  total: number;
+  offset: number;
+  limit: number;
+  counts: { all: number; blocked: number; attack_allowed: number; conflict: number; grouped: number };
+  items: DecisionRow[];
+}
+export interface PolicyImpact {
+  policy_id: string;
+  status: "ACTIVE" | "EXPIRED";
+  scope_type: string;
+  scope_value: string;
+  policy_action: string;
+  group_id: string;
+  activated_after_record_id: string;
+  expires_after_record_id: string | null;
+  ttl_records: number;
+  rationale: string;
+  blocked_records: number;
+  activated_position: number | null;
+  first_blocked_record: string | null;
+  last_blocked_record: string | null;
+  blocked_positions: number[];
+  by_class: Record<string, number>;
+  destinations: Record<string, number>;
+  phases: { day: string | null; cls: string; flows: number; ports: number }[];
 }
 export interface CampaignEvent { seq: number; action: string; campaign: CampaignRecord }
 export interface InvestigationEvent { seq: number; flow_id: string; investigation_id: string; triggers: string[]; verdict: string; tools: string[] }
@@ -457,6 +506,7 @@ export interface LocalRun {
   summary: {
     records: number; seconds: number; policies?: number; groups?: number; actions?: Record<string, number>;
     tradeoff?: { basis: string; by_class: Record<string, { allow: number; block: number }>; called_attack: number; called_attack_blocked: number; called_attack_allowed: number; called_benign: number; called_benign_blocked: number };
+    policy_options?: { ttl_records: number; submitted: boolean; policies: number; called_attack_blocked: number; called_attack_allowed: number; called_benign_blocked: number }[];
   } | null;
   validation: LocalValidation | null;
   submission: { name: string; exists: boolean; rows: number | null; size: number | null; columns: string[] }[];

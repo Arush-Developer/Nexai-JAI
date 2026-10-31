@@ -97,7 +97,7 @@ Modules outside the five agents stay with whoever held them on Day 1. `docs/TEAM
 | `frontend/src/app/`, `frontend/src/main.tsx` | App, routes |
 | `frontend/src/components/` | `Layout`, `Sidebar`, `Navbar`, `AgentStatus`, shared `ui.tsx` |
 | `frontend/src/command/` | The 3D Command Centre: `AgentScene` (robots and room), `useAgentFocus` (which agent is working), `AgentStage`, `HudPanels` |
-| `frontend/src/pages/CommandCenter.tsx` | Command Centre |
+| `frontend/src/pages/CommandCenter.tsx`, `frontend/src/pages/AgentDecisions.tsx` | Command Centre, decision log |
 | `frontend/src/replay/` | `ReplayLab`, `ReplayControls`, `ReplayTimeline`, `LiveFlowFeed` |
 | `frontend/src/styles/`, `frontend/tailwind.config.js`, `frontend/vite.config.ts` | Styling, build |
 | `frontend/src/services/api.ts`, `frontend/src/services/replay.ts` | REST client, SSE stream |

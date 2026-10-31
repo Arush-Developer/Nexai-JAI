@@ -23,7 +23,9 @@ function AgentCard({ id, row }: { id: AgentId; row: Trace[AgentId] }) {
 }
 
 /** The 3D room, with each agent's real state on a label that follows its robot. */
-export default function AgentStage({ focus, trace, offline, heading, watching }: {
+export default function AgentStage({ focus, trace, offline, heading, watching, narration, banner }: {
+  narration: React.ReactNode;
+  banner: React.ReactNode;
   focus: AgentId | null;
   trace: Trace;
   offline: AgentId[];
@@ -82,6 +84,8 @@ export default function AgentStage({ focus, trace, offline, heading, watching }:
         <p className="font-semibold tracking-wide text-text-1">ORCHESTRATOR</p>
         <p className="text-[11px] text-text-2 mt-1">{watching}</p>
       </div>
+      {banner && <div className="absolute inset-x-4 bottom-14 z-20 flex justify-center">{banner}</div>}
+      {narration && <div className="absolute inset-x-3 bottom-3 z-20" data-testid="narration">{narration}</div>}
       {failed && <div className="absolute inset-x-4 top-24 z-10"><Notice tone="warn" title="3D view is unavailable in this browser">{failed} The agents' live state is still in the panels beside this.</Notice></div>}
       {!failed && AGENT_IDS.map((id) => (
         <div key={id} ref={(el) => { labels.current[id] = el; }} className="absolute left-0 top-0 z-10 will-change-transform pointer-events-none max-sm:hidden"><AgentCard id={id} row={trace[id]} /></div>

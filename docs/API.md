@@ -66,6 +66,13 @@ Threshold fields: `allow_benign_confidence`, `block_multi_signal_confidence`, `b
 
 Replay events also include `policy` (activation), and each flow carries `defense_action` and `applied_policy_id`. To replay a file with endpoints, set `CYBERSENTINEL_REPLAY_INPUT=PATH` when starting the backend.
 
+## Decision log
+
+| Method and path | Purpose |
+|---|---|
+| `GET /decisions?offset=0&limit=50&view=all&search=` | What every agent decided for each record replayed so far, newest first, and why. `view` is `all`, `blocked`, `attack_allowed`, `conflict` or `grouped` |
+| `GET /defense/impact` | Each policy's window, and what it has blocked so far, by attack phase |
+
 ## Data Manager
 
 Local only. Requests from any other website's origin get 403. These routes need the saved models, but not the official dataset, so they still work when `/health` reports `unavailable`.

@@ -150,6 +150,19 @@ def defense(request: Request, member_limit: int = Query(25, ge=0, le=5000), grou
     return state_of(request).defense_state(member_limit, group_limit)
 
 
+@router.get("/defense/impact")
+def defense_impact(request: Request):
+    """Each policy's window, and what it has really blocked in the replay so far."""
+    return state_of(request).policy_impact()
+
+
+@router.get("/decisions")
+def decisions(request: Request, offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=500), view: str = "all",
+              search: str | None = None):
+    """What every agent decided for each record replayed so far, newest first, and why."""
+    return state_of(request).decisions(offset, limit, view, search)
+
+
 @router.post("/defense/stop", response_model=ReplayStatus)
 def defense_stop(request: Request, body: DefenseStopRequest):
     """STOP for Agent 5: no new policies until the next fresh replay. Active ones run to their recorded expiry."""
