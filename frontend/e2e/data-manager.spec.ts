@@ -1,0 +1,196 @@
+// The Data Manager, in real Chrome against the real backend and saved models.
+// Input endpoints and timestamps are SYNTHETIC (scripts/make_local_fixture.py), so nothing here measures performance.
+// Chrome's native folder dialog cannot be driven by a test. The real File System Access API runs instead on
+// handles from the browser's private file system, so every call after the dialog is the real one.
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { expect, test, type Page } from "@playwright/test";
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const FIXTURE = resolve(ROOT, "data/processed/local_fixture");
+const SHOTS = resolve(ROOT, "docs/images");
+const noDataset = !!process.env.E2E_NO_DATASET;
+
+test.describe.configure({ mode: "serial" });
+
+test.beforeAll(() => {
+  if (noDataset) return;  // That run's config has no eval partition, so it reuses the file built by a normal run.
+  execFileSync(resolve(ROOT, ".venv/bin/python"), ["scripts/make_local_fixture.py", "--rows", "20000", "--out-dir", FIXTURE], { cwd: ROOT });
+});
+
+/** The dialog is replaced; the handle it returns, and everything done with it, is the real API. */
+async function usePrivateFileSystem(page: Page) {
+  await page.addInitScript(() => {
+    (window as unknown as Record<string, unknown>).showDirectoryPicker = async (options?: { mode?: string }) => {
+      const root = await navigator.storage.getDirectory();
+      return root.getDirectoryHandle(options?.mode === "readwrite" ? "chosen-output" : "chosen-input", { create: true });
+    };
+  });
+}
+
+async function seedInput(page: Page, files: Record<string, string>) {
+  await page.evaluate(async (all) => {
+    const root = await navigator.storage.getDirectory();
+    for (const name of ["chosen-input", "chosen-output"]) await root.removeEntry(name, { recursive: true }).catch(() => undefined);
+    let dir = await root.getDirectoryHandle("chosen-input", { create: true });
+    for (const [path, base64] of Object.entries(all)) {
+      const parts = path.split("/");
+      dir = await root.getDirectoryHandle("chosen-input");
+      for (const part of parts.slice(0, -1)) dir = await dir.getDirectoryHandle(part, { create: true });
+      const writable = await (await dir.getFileHandle(parts[parts.length - 1], { create: true })).createWritable();
+      await writable.write(Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)));
+      await writable.close();
+    }
+  }, files);
+}
+
+const base64 = (name: string) => readFileSync(resolve(FIXTURE, name)).toString("base64");
+
+async function chooseType(page: Page, value: string) {
+  await page.getByLabel("Dataset type").selectOption(value);
+  await page.getByRole("button", { name: "INSPECT DATA" }).click();
+  await expect(page.getByRole("heading", { name: "Inspection report" })).toBeVisible({ timeout: 60_000 });
+}
+
+async function runPipeline(page: Page) {
+  const repeat = page.getByText("Process these identical files again");
+  if (await repeat.isVisible()) await repeat.click();
+  await page.getByRole("button", { name: "RUN DAY 2 PIPELINE" }).click();
+  await expect(page.getByTestId("run-progress")).toContainText("State: completed", { timeout: 120_000 });
+}
+
+test.describe("with the official dataset", () => {
+  test.skip(noDataset, "Only the no-dataset check runs in that mode.");
+  test.use({ viewport: { width: 1280, height: 2000 } });
+
+  test("the folder API path: connect, inspect, watch all five agents, validate and export", async ({ page }) => {
+    await usePrivateFileSystem(page);
+    await page.goto("/data");
+    await expect(page.getByRole("heading", { name: "Data Manager" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "RUN DAY 2 PIPELINE" })).toHaveCount(0);
+    await seedInput(page, { "day2/hidden_style_synthetic.csv": base64("hidden_style_synthetic.csv"), "day2/hidden_style_synthetic.zip": base64("hidden_style_synthetic.zip") });
+
+    await page.getByRole("button", { name: "CONNECT LOCAL INPUT FOLDER" }).click();
+    await expect(page.getByTestId("input-folder")).toHaveText("chosen-input");
+    await expect(page.getByRole("cell", { name: "hidden_style_synthetic.csv", exact: true })).toBeVisible();
+    await expect(page.getByRole("cell", { name: "hidden_style_synthetic.zip", exact: true })).toBeVisible();
+    await expect(page.getByRole("cell", { name: "day2", exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "INSPECT DATA" })).toBeDisabled();
+
+    // Both are the same flows, so with no stated order they must not be joined.
+    await chooseType(page, "hidden");
+    await expect(page.getByText("order across files is unknown").first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "RUN DAY 2 PIPELINE" })).toBeDisabled();
+
+    await page.getByLabel("Select day2/hidden_style_synthetic.zip").uncheck();
+    await expect(page.getByText("Selection changed")).toBeVisible();
+    await page.getByRole("button", { name: "INSPECT DATA" }).click();
+    await expect(page.getByText("20,000").first()).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText("From this input's timestamps")).toBeVisible();
+    await expect(page.getByRole("button", { name: "RUN DAY 2 PIPELINE" })).toBeEnabled();
+    await page.screenshot({ path: resolve(SHOTS, "data-manager-inspection.png"), fullPage: true });
+
+    await runPipeline(page);
+    for (const agent of ["A1", "A2", "A3", "A4", "A5"]) await expect(page.getByTestId(`agent-${agent}`)).toContainText("done");
+    await expect(page.getByTestId("run-progress")).toContainText("of 20,000 records");
+    await expect(page.getByTestId("policy-events")).toContainText("ACTIVATED");
+    await expect(page.getByTestId("policy-events")).toContainText("EXPIRED");
+    await expect(page.getByTestId("validation")).toContainText("Every rule passed");
+    await expect(page.getByTestId("validation")).toContainText("Not ready to submit");
+    await expect(page.getByTestId("validation")).toContainText("replay.csv header is not confirmed");
+    await page.screenshot({ path: resolve(SHOTS, "data-manager-run.png"), fullPage: true });
+
+    await page.getByRole("button", { name: "VALIDATE OUTPUTS" }).click();
+    await expect(page.getByTestId("validation")).toContainText("Every rule passed");
+
+    await expect(page.getByRole("button", { name: "EXPORT ALL OUTPUTS" })).toBeDisabled();
+    await page.getByRole("button", { name: "CHOOSE OUTPUT FOLDER" }).click();
+    await expect(page.getByTestId("output-folder")).toHaveText("chosen-output");
+    await page.getByRole("button", { name: "EXPORT ALL OUTPUTS" }).click();
+    await expect(page.getByText("Export finished")).toBeVisible({ timeout: 30_000 });
+    await page.screenshot({ path: resolve(SHOTS, "data-manager-export.png"), fullPage: true });
+
+    // What the browser wrote must be byte-for-byte what the backend generated.
+    const runId = (await page.getByText(/^Pipeline: RUN_/).textContent())!.replace("Pipeline: ", "");
+    const written = await page.evaluate(async (id) => {
+      const root = await navigator.storage.getDirectory();
+      const dir = await (await root.getDirectoryHandle("chosen-output")).getDirectoryHandle(id);
+      const out: Record<string, string> = {};
+      for await (const handle of (dir as unknown as { values(): AsyncIterable<FileSystemFileHandle> }).values()) out[handle.name] = await (await handle.getFile()).text();
+      return out;
+    }, runId);
+    expect(Object.keys(written)).toEqual(expect.arrayContaining(["classification.csv", "policy.csv", "replay.csv", "run_summary.json", "validation_report.json", "replay_events.jsonl"]));
+    for (const name of Object.keys(written)) {
+      expect(written[name], name).toBe(await (await page.request.get(`/api/local-data/runs/${runId}/files/${name}`)).text());
+    }
+    expect(written["classification.csv"].trim().split("\n")).toHaveLength(20001);
+    expect(written["replay.csv"].trim().split("\n")[0]).toBe("record_id,action,applied_policy_id");
+
+    // An existing run folder is never overwritten without approval.
+    await page.evaluate(async (id) => {
+      const root = await navigator.storage.getDirectory();
+      const dir = await (await root.getDirectoryHandle("chosen-output")).getDirectoryHandle(id);
+      const writable = await (await dir.getFileHandle("policy.csv")).createWritable();
+      await writable.write("edited by hand");
+      await writable.close();
+    }, runId);
+    await page.getByRole("button", { name: "EXPORT ALL OUTPUTS" }).click();
+    await expect(page.getByText(`${runId} already exists in that folder`)).toBeVisible();
+    const kept = await page.evaluate(async (id) => {
+      const root = await navigator.storage.getDirectory();
+      const dir = await (await root.getDirectoryHandle("chosen-output")).getDirectoryHandle(id);
+      return (await (await dir.getFileHandle("policy.csv")).getFile()).text();
+    }, runId);
+    expect(kept).toBe("edited by hand");
+    await page.getByRole("button", { name: `Replace the files in ${runId}` }).click();
+    await expect(page.getByText("Export finished")).toBeVisible({ timeout: 30_000 });
+
+    const download = page.waitForEvent("download");
+    await page.getByRole("button", { name: "DOWNLOAD OUTPUT ZIP" }).click();
+    expect((await download).suggestedFilename()).toBe(`${runId}_outputs.zip`);
+  });
+
+  test("without the folder API: the operating-system picker still works, and outputs still download", async ({ page }) => {
+    await page.addInitScript(() => { delete (window as unknown as Record<string, unknown>).showDirectoryPicker; delete (Window.prototype as unknown as Record<string, unknown>).showDirectoryPicker; });
+    await page.goto("/data");
+    await expect(page.getByText("This browser cannot write to a folder")).toBeVisible();
+    await expect(page.getByRole("button", { name: "CHOOSE OUTPUT FOLDER" })).toBeDisabled();
+    await page.getByTestId("folder-fallback").setInputFiles(FIXTURE);
+    await expect(page.getByRole("cell", { name: "hidden_style_synthetic.csv", exact: true })).toBeVisible();
+    await page.getByLabel("Select hidden_style_synthetic.zip").uncheck();
+    await chooseType(page, "hidden");
+    await runPipeline(page);
+    await expect(page.getByTestId("validation")).toContainText("Every rule passed");
+    const download = page.waitForEvent("download");
+    await page.getByRole("link", { name: "classification.csv" }).click();
+    expect((await download).suggestedFilename()).toBe("classification.csv");
+  });
+
+  test("error state: a dataset type the file does not match blocks the run", async ({ page }) => {
+    await page.addInitScript(() => { delete (window as unknown as Record<string, unknown>).showDirectoryPicker; delete (Window.prototype as unknown as Record<string, unknown>).showDirectoryPicker; });
+    await page.goto("/data");
+    await page.getByTestId("folder-fallback").setInputFiles(FIXTURE);
+    await page.getByLabel("Select hidden_style_synthetic.zip").uncheck();
+    await chooseType(page, "validation");
+    await expect(page.getByText("no label column").first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "RUN DAY 2 PIPELINE" })).toBeDisabled();
+  });
+});
+
+test.describe("no copy of the dataset", () => {
+  test.skip(!noDataset, "Run with E2E_NO_DATASET=1 and a config whose eval partition does not exist.");
+  test("other screens explain the problem, and the Data Manager still runs the pipeline", async ({ page }) => {
+    await page.goto("/command");
+    await expect(page.getByText("Backend could not load models")).toBeVisible({ timeout: 60_000 });
+    await page.addInitScript(() => { delete (window as unknown as Record<string, unknown>).showDirectoryPicker; delete (Window.prototype as unknown as Record<string, unknown>).showDirectoryPicker; });
+    await page.goto("/data");
+    await expect(page.getByRole("heading", { name: "Data Manager" })).toBeVisible();
+    await page.getByTestId("folder-fallback").setInputFiles(FIXTURE);
+    await page.getByLabel("Select hidden_style_synthetic.zip").uncheck();
+    await chooseType(page, "hidden");
+    await runPipeline(page);
+    await expect(page.getByTestId("validation")).toContainText("Every rule passed");
+  });
+});

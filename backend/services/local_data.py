@@ -307,7 +307,7 @@ def temporal_note(has_timestamps: bool) -> dict:
     temporal = level2.temporal_config()
     if has_timestamps and temporal.window_seconds:
         return {"basis": "seconds",
-                "detail": f"Agent 4 uses a sliding window of {temporal.window_seconds:g} seconds of real timestamps."}
+                "detail": f"Agent 4 uses a sliding window of {temporal.window_seconds:g} seconds, from this input's timestamps."}
     return {"basis": "records",
             "detail": "No usable timestamps, so Agent 4 cannot do time-window correlation. It falls back to the last "
                       f"{temporal.window_records} replay records, which is not a time window."}

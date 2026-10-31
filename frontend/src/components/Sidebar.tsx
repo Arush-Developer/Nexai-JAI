@@ -1,4 +1,4 @@
-import { Activity, BarChart3, FlaskConical, Network, Radar, Search, ShieldCheck, type LucideIcon } from "lucide-react";
+import { Activity, BarChart3, FlaskConical, FolderSync, Network, Radar, Search, ShieldCheck, type LucideIcon } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 const NAV: { to: string; label: string; icon: LucideIcon }[] = [
@@ -8,6 +8,7 @@ const NAV: { to: string; label: string; icon: LucideIcon }[] = [
   { to: "/models", label: "Model Intelligence", icon: BarChart3 },
   { to: "/defence", label: "Defence & Audit", icon: ShieldCheck },
   { to: "/replay", label: "Replay Lab", icon: FlaskConical },
+  { to: "/data", label: "Data Manager", icon: FolderSync },
 ];
 
 export function Sidebar() {

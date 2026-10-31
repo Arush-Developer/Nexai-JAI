@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { ModelMetrics } from "../analytics/ModelMetrics";
 import { ThreatAnalytics } from "../analytics/ThreatAnalytics";
 import { DefenceAudit } from "../audit/DefenceAudit";
+import { DataManager } from "../data-manager/DataManager";
 import { InvestigationWorkbench } from "../investigations/InvestigationWorkbench";
 import { CommandCenter } from "../pages/CommandCenter";
 import { ReplayLab } from "../replay/ReplayLab";
@@ -16,6 +17,7 @@ export function AppRoutes() {
       <Route path="/models" element={<ModelMetrics />} />
       <Route path="/defence" element={<DefenceAudit />} />
       <Route path="/replay" element={<ReplayLab />} />
+      <Route path="/data" element={<DataManager />} />
       <Route path="*" element={<Navigate to="/command" replace />} />
     </Routes>
   );

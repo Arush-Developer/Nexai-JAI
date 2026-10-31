@@ -64,3 +64,19 @@ Threshold fields: `allow_benign_confidence`, `block_multi_signal_confidence`, `b
 | `POST /defense/stop` | STOP for Agent 5. No new policies until the next fresh replay; active ones run to their recorded expiry. Body: `{"reason": "..."}` |
 
 Replay events also include `policy` (activation), and each flow carries `defense_action` and `applied_policy_id`. To replay a file with endpoints, set `CYBERSENTINEL_REPLAY_INPUT=PATH` when starting the backend.
+
+## Data Manager
+
+Local only. Requests from any other website's origin get 403. These routes need the saved models, but not the official dataset, so they still work when `/health` reports `unavailable`.
+
+| Method and path | Purpose |
+|---|---|
+| `GET /local-data/status` | Model readiness, limits, and whether the `replay.csv` header and expiry convention are confirmed |
+| `POST /local-data/upload` | Multipart `dataset_type` (`hidden`, `validation` or `training`), `files`, `relative_paths`. Creates a run, stores the originals, hashes them with SHA-256, and safely extracts any ZIP |
+| `POST /local-data/inspect` | `{"run_id", "include"}`. The report on each file and the selected job, read from the data itself |
+| `POST /local-data/run` | `{"run_id", "include", "on_order_conflict", "allow_duplicate"}`. Starts the pipeline. 409 if it is already processed, a repeat of processed files, ambiguous in order, or training data; 422 if it failed inspection |
+| `GET /local-data/runs/{run_id}` | State, per-agent status, output list, previews, summary and validation |
+| `GET /local-data/runs/{run_id}/events` | Server-Sent Events: `stage`, `agent`, `progress`, `policy`, `done`, `closed` |
+| `POST /local-data/runs/{run_id}/validate` | Reads the files back from disk and checks them against the input |
+| `GET /local-data/runs/{run_id}/files/{name}` | One named output file |
+| `GET /local-data/runs/{run_id}/archive` | Every output as a ZIP |

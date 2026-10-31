@@ -68,11 +68,13 @@ full detail is in `data/reports/evaluation_report.json`.
 
 ## Quick start
 
+**To run the Day 2 pipeline on your own files, use the [Local operator guide](docs/LOCAL_OPERATOR_GUIDE.md):** `./scripts/run_local.sh`, then open http://localhost:5173/data in Chrome. The steps below rebuild everything from the dataset.
+
 Requires Python 3.12 and Node 20 or later. Put the organisers' ZIP at `data/raw/cyber-pack.zip`
 (`data/raw/official_dataset.zip` also works).
 
 ```bash
-/opt/homebrew/bin/python3.12 -m venv .venv
+python3.12 -m venv .venv
 ```
 ```bash
 .venv/bin/pip install -r requirements.txt
@@ -227,6 +229,10 @@ The layout and who owns each module are in [docs/TEAM_OWNERSHIP.md](docs/TEAM_OW
 
 ## Documentation
 
+- [Local operator guide](docs/LOCAL_OPERATOR_GUIDE.md)
+- [Day 2 technical flow](docs/DAY2_TECHNICAL_FLOW.md)
+- [Final test report](docs/FINAL_TEST_REPORT.md)
+- [Final implementation audit](docs/FINAL_IMPLEMENTATION_AUDIT.md)
 - [API reference](docs/API.md)
 - [Team ownership](docs/TEAM_OWNERSHIP.md)
 - [Team handoff](docs/TEAM_HANDOFF.md)

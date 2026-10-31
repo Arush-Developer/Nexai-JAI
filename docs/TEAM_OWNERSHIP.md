@@ -28,6 +28,7 @@ Modules outside the five agents stay with whoever held them on Day 1. `docs/TEAM
 | `backend/services/model_service.py`, `backend/services/app_state.py` | Runs the agents; state behind the API |
 | `backend/agents/investigation_orchestrator.py`, `backend/intelligence/evidence_engine.py`, `backend/investigation/audit.py` | Investigation planning, evidence graph, audit log |
 | `backend/policy/policy_engine.py` | Simulated decisions, what-if |
+| `backend/services/local_data.py`, `backend/api/local_data.py`, `scripts/run_local.sh`, `scripts/make_local_fixture.py`, `tests/api/test_local_data.py` | Data Manager backend, local startup, synthetic fixture |
 | `backend/schemas/contracts.py` | Shared contracts, coordinated with everyone |
 | `scripts/calibrate_fusion.py`, `scripts/score_records.py`, `scripts/run_all.sh` | Thresholds, scoring, full rebuild |
 | `tests/agents/test_temporal_correlation.py`, `tests/replay/`, `tests/policy/`, `tests/api/`, `tests/integration/`, `tests/test_imports.py` | Backend and end-to-end tests |
@@ -99,6 +100,7 @@ Modules outside the five agents stay with whoever held them on Day 1. `docs/TEAM
 | `frontend/src/replay/` | `ReplayLab`, `ReplayControls`, `ReplayTimeline`, `LiveFlowFeed` |
 | `frontend/src/styles/`, `frontend/tailwind.config.js`, `frontend/vite.config.ts` | Styling, build |
 | `frontend/src/services/api.ts`, `frontend/src/services/replay.ts` | REST client, SSE stream |
+| `frontend/src/data-manager/`, `frontend/src/services/localData.ts`, `frontend/e2e/data-manager.spec.ts` | Data Manager screen, folder access, browser tests |
 | `frontend/src/services/types.ts` | Shared with Arush; mirrors `contracts.py` |
 
 - **Inputs:** REST and SSE responses.

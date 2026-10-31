@@ -326,3 +326,133 @@ export interface ReplayFlowEvent {
 }
 export interface CampaignEvent { seq: number; action: string; campaign: CampaignRecord }
 export interface InvestigationEvent { seq: number; flow_id: string; investigation_id: string; triggers: string[]; verdict: string; tools: string[] }
+
+// The Data Manager. Reported by backend/services/local_data.py.
+export interface LocalStatus {
+  ready: boolean;
+  error: string | null;
+  agents: Record<string, string>;
+  replay_schema_confirmed: boolean;
+  expiry_boundary_confirmed: boolean;
+  expiry_boundary: string;
+  window_seconds: number | null;
+  window_records: number;
+}
+
+export interface LocalUploadedFile {
+  file_id: string;
+  name: string;
+  relative_path: string;
+  size: number;
+  sha256: string;
+  kind: string;
+  skipped_members: string[];
+  previous_uploads: { run_id: string; dataset_type: string }[];
+}
+
+export interface LocalUpload {
+  run_id: string;
+  created: string;
+  dataset_type: string;
+  files: LocalUploadedFile[];
+  data_files: { id: string; display: string; size: number }[];
+  duplicate_of: string[];
+}
+
+export interface LocalInspectionFile {
+  id: string;
+  display: string;
+  size: number;
+  included: boolean;
+  role: "flows" | "ordering" | "unknown";
+  records: number;
+  columns: number;
+  errors: string[];
+  warnings: string[];
+  column_names?: string[];
+  dtypes?: Record<string, string>;
+  missing_values?: number;
+  positive_infinity?: number;
+  negative_infinity?: number;
+  duplicate_records?: number;
+  duplicate_columns?: string[][];
+  label_column?: string | null;
+  record_id_column?: string | null;
+  timestamp_column?: string | null;
+  source_ip_available?: boolean;
+  destination_ip_available?: boolean;
+  source_port_available?: boolean;
+  destination_port_available?: boolean;
+  protocol_available?: boolean;
+  feature_count?: number;
+  missing_required_features?: string[];
+  unrecognised_columns?: string[];
+  invalid_values?: Record<string, number>;
+  timestamp_order?: { available: boolean; unreadable: number | null; backward_steps: number | null; first: string | null; last: string | null } | null;
+}
+
+export interface LocalJob {
+  selected: string[];
+  records: number;
+  feature_count: number;
+  models_compatible: boolean;
+  errors: string[];
+  warnings: string[];
+  order_conflict: boolean;
+  mode: "full" | "classification_only" | null;
+  a4_a5_available: boolean;
+  a4_a5_missing: string[];
+  temporal: { basis: "seconds" | "records"; detail: string } | null;
+  runnable: boolean;
+}
+
+export interface LocalInspection {
+  run_id: string;
+  dataset_type: string;
+  files: LocalInspectionFile[];
+  uploads: LocalUploadedFile[];
+  job: LocalJob;
+}
+
+export interface LocalAgentState {
+  state: string;
+  detail: string;
+}
+
+export interface LocalPolicyEvent {
+  seq: number;
+  event: string;
+  policy_id: string;
+  record_id: string;
+  scope_value: string;
+  ttl_records?: number;
+  blocked_records?: number;
+  expires_after_record_id?: string;
+}
+
+export interface LocalValidation {
+  rules_passed: boolean;
+  problems: string[];
+  problem_count: number;
+  rules_checked: string[];
+  labels_read: boolean;
+  submission_ready: boolean;
+  blockers: string[];
+  records_expected: number;
+  validated_at: string;
+}
+
+export interface LocalRun {
+  run_id: string;
+  state: string;
+  stage: string;
+  mode: string | null;
+  processed: number;
+  total: number;
+  agents: Record<string, LocalAgentState>;
+  error: string | null;
+  outputs: { name: string; size: number }[];
+  preview: Record<string, { columns: string[]; rows: string[][] }>;
+  summary: { records: number; seconds: number; policies?: number; groups?: number; actions?: Record<string, number> } | null;
+  validation: LocalValidation | null;
+}

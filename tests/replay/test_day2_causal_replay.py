@@ -221,3 +221,22 @@ def test_wrong_columns_and_bad_scores_are_caught():
     assert "columns" in validate_outputs(classification.drop(columns="anomaly_score"), policy, replay, ids, sources)[0]
     assert any("anomaly_score" in p for p in validate_outputs(classification.assign(anomaly_score="n/a"), policy, replay, ids, sources))
     assert any("evidence_status" in p for p in validate_outputs(classification.assign(evidence_status="MADE_UP"), policy, replay, ids, sources))
+
+
+@pytest.mark.parametrize("boundary, ttl, last_blocked", [("inclusive", 3, "R005"), ("exclusive", 4, "R006")])
+def test_the_final_brief_sequence_r001_to_r005_then_expiry(boundary, ttl, last_blocked):
+    """R001 ALLOW; R002 ALLOW and activates after itself; R003 other source; R004, R005 BLOCK; then expiry."""
+    run = engine(boundary, ttl=ttl)
+    steps = scenario(run)
+    assert [s["action"] for s in steps] == [ALLOW, ALLOW, ALLOW, BLOCK, BLOCK]
+    policy = steps[1]["activated_policy"]
+    assert policy["activated_after_record_id"] == "R002" and [s["applied_policy_id"] for s in steps[3:]] == [policy["policy_id"]] * 2
+    assert all(s["applied_policy_id"] == "" for s in steps[:3])
+    if boundary == "exclusive":
+        # The record named as the expiry is not blocked under this convention, but it does end the policy.
+        after = suspicious(run, 5)
+        assert after["action"] == ALLOW and policy["expires_after_record_id"] == last_blocked
+    else:
+        assert policy["expires_after_record_id"] == last_blocked
+        assert suspicious(run, 5)["applied_policy_id"] != policy["policy_id"]
+    assert policy["status"] == "EXPIRED" and policy["blocked_records"] == 2

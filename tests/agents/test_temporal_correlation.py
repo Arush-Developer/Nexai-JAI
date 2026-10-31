@@ -89,6 +89,25 @@ def test_expired_time_window_applies_even_when_few_records_have_passed():
     assert [g["member_record_ids"] for g in a.public_groups()] == [["R0", "R1"], ["R2", "R3"]]
 
 
+def test_with_timestamps_the_window_is_seconds_and_the_record_count_does_not_apply():
+    a = agent(window_records=2, window_seconds=60.0)
+    for i in range(5):
+        flow(a, i, ts=float(i))
+    evidence = a.source_evidence("1.1.1.1")
+    assert evidence["flows_in_window"] == 5 and evidence["window_basis"] == "seconds"
+    assert "60 seconds" in a.public_groups()[0]["correlation_reason"]
+
+
+def test_without_timestamps_the_evidence_never_claims_a_time_window():
+    a = agent(window_records=3, window_seconds=60.0)
+    for i in range(5):
+        flow(a, i)
+    evidence = a.source_evidence("1.1.1.1")
+    assert evidence["flows_in_window"] == 3 and evidence["window_basis"] == "records"
+    reason = a.public_groups()[0]["correlation_reason"]
+    assert "3 records" in reason and "seconds" not in reason
+
+
 def test_a_flow_exactly_on_the_time_limit_is_still_inside():
     a = agent(window_records=1000, window_seconds=60.0)
     flow(a, 0, ts=0.0), flow(a, 1, ts=60.0)
