@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 
 export class ApiError extends Error {}
 
+/** Fired on window when a finished run becomes the data every screen shows. */
+export const DATA_CONNECTED = "cybersentinel:data-connected";
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, {
     ...init,

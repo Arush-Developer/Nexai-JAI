@@ -2,7 +2,7 @@ import { CheckCircle2, CircleDashed, FolderOpen, FolderOutput, Loader2, MinusCir
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Btn, Empty, Notice, Page, Panel, Stat, TableWrap, Tag, fmt, tdCls, thCls } from "../components/ui";
-import { post, useApi } from "../services/api";
+import { DATA_CONNECTED, post, useApi } from "../services/api";
 import {
   ExistingRunFolder, entriesFromInput, exportRun, folderApiAvailable, pickInputFolder, pickOutputFolder, uploadFiles, type LocalEntry,
 } from "../services/localData";
@@ -184,7 +184,7 @@ export function DataManager() {
     if (view.agents && Object.keys(view.agents).length) setAgents(view.agents);
     // A finished run becomes what every screen shows, so nothing else needs connecting.
     if (view.state === "completed") {
-      await post(`/local-data/runs/${runId}/open-in-dashboard`).then(() => setConnectedRun(runId)).catch((e: Error) => setProblem(e.message));
+      await post(`/local-data/runs/${runId}/open-in-dashboard`).then(() => { setConnectedRun(runId); window.dispatchEvent(new Event(DATA_CONNECTED)); }).catch((e: Error) => setProblem(e.message));
     }
   }, []);
 
@@ -247,6 +247,7 @@ export function DataManager() {
     setProblem(null); setOpening(true);
     try {
       if (connectedRun !== run!.run_id) await post(`/local-data/runs/${run!.run_id}/open-in-dashboard`);
+      window.dispatchEvent(new Event(DATA_CONNECTED));
       navigate("/command");
     } catch (e) { setProblem((e as Error).message); setOpening(false); }
   };

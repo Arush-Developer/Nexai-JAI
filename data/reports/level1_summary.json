@@ -4,32 +4,31 @@
   "partition": "eval",
   "rows": 114185,
   "scope": "Agents 1 to 3 only (Mode B)",
-  "accuracy": 0.9999474536935674,
-  "macro_f1": 0.9998231651318518,
+  "accuracy": 0.999964969129045,
+  "macro_f1": 0.9999029966740844,
   "agent1": {
-    "accuracy": 0.9999474536935674,
-    "macro_f1": 0.9998231651318518,
-    "model": "catboost-fit_selection-seed42-noport"
+    "accuracy": 0.999964969129045,
+    "macro_f1": 0.9999029966740844,
+    "model": "catboost-all_training-seed42-noport"
   },
   "agent2": {
-    "roc_auc": 0.8844509404406723,
-    "pr_auc": 0.825657443548279,
-    "recall": 0.559021113243762,
-    "false_positive_rate": 0.05003249945834236
+    "roc_auc": 0.9804986001906613,
+    "pr_auc": 0.9502659314706752,
+    "recall": 0.9998523549387273,
+    "false_positive_rate": 0.0500658322361294
   },
   "agent3": {
-    "agreement_rate": 0.7644699391338617,
+    "agreement_rate": 0.9736042387353856,
     "evidence_status_counts": {
-      "AGREED_BENIGN": 57000,
-      "ANOMALY_ONLY": 3001,
-      "CLASSIFIER_ONLY": 23893,
-      "MULTI_SIGNAL_ATTACK": 30290,
-      "UNCERTAIN": 1
+      "AGREED_BENIGN": 56997,
+      "ANOMALY_ONLY": 3006,
+      "CLASSIFIER_ONLY": 8,
+      "MULTI_SIGNAL_ATTACK": 54174
     },
     "policy_counts": {
-      "ALLOW": 56997,
-      "BLOCK": 54168,
-      "REVIEW": 3020
+      "ALLOW": 56995,
+      "BLOCK": 54181,
+      "REVIEW": 3009
     }
   }
 }

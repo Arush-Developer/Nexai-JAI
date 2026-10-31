@@ -4,22 +4,22 @@
     "rows": 114185,
     "note": "All modes use the same official eval records. Mode C's batch view assigns a flow to a campaign using its whole window; mode_c_causal_replay is the strictly forward run.",
     "mode_a_classifier_alone": {
-      "accuracy": 0.9999474536935674,
-      "macro_f1": 0.9998231651318518,
-      "balanced_accuracy": 0.9996870939367346,
+      "accuracy": 0.999964969129045,
+      "macro_f1": 0.9999029966740844,
+      "balanced_accuracy": 0.9998243802739232,
       "per_class_recall": {
-        "BENIGN": 0.9999500008333194,
-        "BRUTE_FORCE": 0.9985549132947977,
+        "BENIGN": 0.9999833336111065,
+        "BRUTE_FORCE": 0.9992774566473989,
         "DOS": 1.0,
         "DDOS": 1.0,
-        "PORT_SCAN": 0.9999305555555555
+        "PORT_SCAN": 0.9998611111111111
       },
       "per_class_precision": {
-        "BENIGN": 0.9999500008333194,
+        "BENIGN": 0.999950002499875,
         "BRUTE_FORCE": 1.0,
-        "DOS": 0.9999166736105325,
+        "DOS": 0.9999583350693722,
         "DDOS": 1.0,
-        "PORT_SCAN": 0.9999305555555555
+        "PORT_SCAN": 1.0
       },
       "confusion_matrix": {
         "labels": [
@@ -31,15 +31,15 @@
         ],
         "rows_true_columns_predicted": [
           [
-            59998,
+            60000,
             0,
-            2,
+            1,
             0,
-            1
+            0
           ],
           [
-            2,
-            1382,
+            1,
+            1383,
             0,
             0,
             0
@@ -59,51 +59,51 @@
             0
           ],
           [
-            1,
+            2,
             0,
             0,
             0,
-            14399
+            14398
           ]
         ]
       },
-      "false_positive_rate": 4.9999166680555324e-05,
+      "false_positive_rate": 1.666638889351844e-05,
       "false_negative_rate": 5.536689797726266e-05,
       "agent_agreement_rate": null,
       "evidence_status_counts": null,
       "policy": {
         "counts": {
           "ALLOW": 59995,
-          "BLOCK": 54166,
-          "REVIEW": 24
+          "BLOCK": 54153,
+          "REVIEW": 37
         },
-        "attacks_blocked_rate": 0.9996677986121364,
-        "attacks_allowed_rate": 5.536689797726266e-05,
-        "attacks_reviewed_rate": 0.0002768344898863133,
-        "benign_allowed_rate": 0.9998500024999584,
+        "attacks_blocked_rate": 0.9994278753875683,
+        "attacks_allowed_rate": 3.691126531817511e-05,
+        "attacks_reviewed_rate": 0.0005352133471135391,
+        "benign_allowed_rate": 0.9998666688888519,
         "benign_blocked_rate": 0.0,
-        "benign_reviewed_rate": 0.00014999750004166597
+        "benign_reviewed_rate": 0.00013333111114814753
       },
       "seconds": 0.038,
-      "latency_ms_per_1k_flows": 0.33
+      "latency_ms_per_1k_flows": 0.334
     },
     "mode_b_with_anomaly_and_fusion": {
-      "accuracy": 0.9999474536935674,
-      "macro_f1": 0.9998231651318518,
-      "balanced_accuracy": 0.9996870939367346,
+      "accuracy": 0.999964969129045,
+      "macro_f1": 0.9999029966740844,
+      "balanced_accuracy": 0.9998243802739232,
       "per_class_recall": {
-        "BENIGN": 0.9999500008333194,
-        "BRUTE_FORCE": 0.9985549132947977,
+        "BENIGN": 0.9999833336111065,
+        "BRUTE_FORCE": 0.9992774566473989,
         "DOS": 1.0,
         "DDOS": 1.0,
-        "PORT_SCAN": 0.9999305555555555
+        "PORT_SCAN": 0.9998611111111111
       },
       "per_class_precision": {
-        "BENIGN": 0.9999500008333194,
+        "BENIGN": 0.999950002499875,
         "BRUTE_FORCE": 1.0,
-        "DOS": 0.9999166736105325,
+        "DOS": 0.9999583350693722,
         "DDOS": 1.0,
-        "PORT_SCAN": 0.9999305555555555
+        "PORT_SCAN": 1.0
       },
       "confusion_matrix": {
         "labels": [
@@ -115,15 +115,15 @@
         ],
         "rows_true_columns_predicted": [
           [
-            59998,
+            60000,
             0,
-            2,
+            1,
             0,
-            1
+            0
           ],
           [
-            2,
-            1382,
+            1,
+            1383,
             0,
             0,
             0
@@ -143,57 +143,56 @@
             0
           ],
           [
-            1,
+            2,
             0,
             0,
             0,
-            14399
+            14398
           ]
         ]
       },
-      "false_positive_rate": 4.9999166680555324e-05,
+      "false_positive_rate": 1.666638889351844e-05,
       "false_negative_rate": 5.536689797726266e-05,
-      "agent_agreement_rate": 0.7644699391338617,
+      "agent_agreement_rate": 0.9736042387353856,
       "evidence_status_counts": {
-        "AGREED_BENIGN": 57000,
-        "ANOMALY_ONLY": 3001,
-        "CLASSIFIER_ONLY": 23893,
-        "MULTI_SIGNAL_ATTACK": 30290,
-        "UNCERTAIN": 1
+        "AGREED_BENIGN": 56997,
+        "ANOMALY_ONLY": 3006,
+        "CLASSIFIER_ONLY": 8,
+        "MULTI_SIGNAL_ATTACK": 54174
       },
       "policy": {
         "counts": {
-          "ALLOW": 56997,
-          "BLOCK": 54168,
-          "REVIEW": 3020
+          "ALLOW": 56995,
+          "BLOCK": 54181,
+          "REVIEW": 3009
         },
-        "attacks_blocked_rate": 0.9996862542447955,
-        "attacks_allowed_rate": 3.691126531817511e-05,
-        "attacks_reviewed_rate": 0.0002768344898863133,
+        "attacks_blocked_rate": 0.9999261774693636,
+        "attacks_allowed_rate": 0.0,
+        "attacks_reviewed_rate": 7.382253063635022e-05,
         "benign_allowed_rate": 0.9499008349860836,
         "benign_blocked_rate": 1.666638889351844e-05,
         "benign_reviewed_rate": 0.05008249862502292
       },
-      "seconds": 0.459,
-      "latency_ms_per_1k_flows": 4.02
+      "seconds": 8.213,
+      "latency_ms_per_1k_flows": 71.929
     },
     "mode_c_complete_system": {
-      "accuracy": 0.9999474536935674,
-      "macro_f1": 0.9998231651318518,
-      "balanced_accuracy": 0.9996870939367346,
+      "accuracy": 0.999964969129045,
+      "macro_f1": 0.9999029966740844,
+      "balanced_accuracy": 0.9998243802739232,
       "per_class_recall": {
-        "BENIGN": 0.9999500008333194,
-        "BRUTE_FORCE": 0.9985549132947977,
+        "BENIGN": 0.9999833336111065,
+        "BRUTE_FORCE": 0.9992774566473989,
         "DOS": 1.0,
         "DDOS": 1.0,
-        "PORT_SCAN": 0.9999305555555555
+        "PORT_SCAN": 0.9998611111111111
       },
       "per_class_precision": {
-        "BENIGN": 0.9999500008333194,
+        "BENIGN": 0.999950002499875,
         "BRUTE_FORCE": 1.0,
-        "DOS": 0.9999166736105325,
+        "DOS": 0.9999583350693722,
         "DDOS": 1.0,
-        "PORT_SCAN": 0.9999305555555555
+        "PORT_SCAN": 1.0
       },
       "confusion_matrix": {
         "labels": [
@@ -205,15 +204,15 @@
         ],
         "rows_true_columns_predicted": [
           [
-            59998,
+            60000,
             0,
-            2,
+            1,
             0,
-            1
+            0
           ],
           [
-            2,
-            1382,
+            1,
+            1383,
             0,
             0,
             0
@@ -233,84 +232,84 @@
             0
           ],
           [
-            1,
+            2,
             0,
             0,
             0,
-            14399
+            14398
           ]
         ]
       },
-      "false_positive_rate": 4.9999166680555324e-05,
+      "false_positive_rate": 1.666638889351844e-05,
       "false_negative_rate": 5.536689797726266e-05,
-      "agent_agreement_rate": 0.7644699391338617,
+      "agent_agreement_rate": 0.9736042387353856,
       "evidence_status_counts": {
-        "AGREED_BENIGN": 52042,
-        "ANOMALY_ONLY": 3001,
-        "CAMPAIGN_CORROBORATED": 23632,
-        "CAMPAIGN_ONLY": 4958,
-        "CLASSIFIER_ONLY": 261,
-        "MULTI_SIGNAL_ATTACK": 30290,
-        "UNCERTAIN": 1
+        "AGREED_BENIGN": 52274,
+        "ANOMALY_ONLY": 3006,
+        "CAMPAIGN_CORROBORATED": 6,
+        "CAMPAIGN_ONLY": 4723,
+        "CLASSIFIER_ONLY": 2,
+        "MULTI_SIGNAL_ATTACK": 54174
       },
       "policy": {
         "counts": {
-          "ALLOW": 52039,
-          "BLOCK": 54141,
-          "REVIEW": 8005
+          "ALLOW": 52272,
+          "BLOCK": 54133,
+          "REVIEW": 7780
         },
-        "attacks_blocked_rate": 0.9991879521630002,
-        "attacks_allowed_rate": 1.8455632659087555e-05,
-        "attacks_reviewed_rate": 0.0007935922043407648,
-        "benign_allowed_rate": 0.8672855452409126,
-        "benign_blocked_rate": 1.666638889351844e-05,
-        "benign_reviewed_rate": 0.13269778837019383
+        "attacks_blocked_rate": 0.9990587627343865,
+        "attacks_allowed_rate": 0.0,
+        "attacks_reviewed_rate": 0.0009412372656134652,
+        "benign_allowed_rate": 0.8711854802419959,
+        "benign_blocked_rate": 0.0,
+        "benign_reviewed_rate": 0.12881451975800404
       },
-      "seconds": 4.815,
-      "latency_ms_per_1k_flows": 42.167,
+      "seconds": 11.018,
+      "latency_ms_per_1k_flows": 96.494,
       "investigation_coverage": {
-        "triggered": 32468,
-        "investigated": 32468,
-        "share_of_flows": 0.28434557954197137,
+        "triggered": 18372,
+        "investigated": 18372,
+        "share_of_flows": 0.16089679029644874,
         "verdicts": {
-          "SUPPORTS_ATTACK": 26277,
-          "CONFLICTING": 6191
+          "SUPPORTS_ATTACK": 11322,
+          "CONFLICTING": 7049,
+          "SUPPORTS_BENIGN": 1
         }
       },
       "campaign_grouping": {
-        "campaigns": 27,
-        "flows_in_a_campaign": 59709
+        "campaigns": 21,
+        "flows_in_a_campaign": 59668
       }
     },
     "mode_c_causal_replay": {
       "status": "completed",
       "rows": 114185,
-      "macro_f1": 0.9998231651318518,
-      "accuracy": 0.9999474536935674,
+      "macro_f1": 0.9999029966740844,
+      "accuracy": 0.999964969129045,
       "policy": {
         "counts": {
-          "ALLOW": 52008,
-          "BLOCK": 54141,
-          "REVIEW": 8036
+          "ALLOW": 52198,
+          "BLOCK": 54139,
+          "REVIEW": 7848
         },
-        "attacks_blocked_rate": 0.9991879521630002,
-        "attacks_allowed_rate": 1.8455632659087555e-05,
-        "attacks_reviewed_rate": 0.0007935922043407648,
-        "benign_allowed_rate": 0.8667688871852136,
-        "benign_blocked_rate": 1.666638889351844e-05,
-        "benign_reviewed_rate": 0.1332144464258929
+        "attacks_blocked_rate": 0.999169496530341,
+        "attacks_allowed_rate": 0.0,
+        "attacks_reviewed_rate": 0.0008305034696589399,
+        "benign_allowed_rate": 0.8699521674638756,
+        "benign_blocked_rate": 0.0,
+        "benign_reviewed_rate": 0.1300478325361244
       },
-      "campaigns": 15,
+      "campaigns": 12,
       "investigations_run": 575,
-      "investigation_triggers": 32499,
-      "replay_analysis_flows_per_second": 82078.8,
-      "wall_seconds_at_requested_100k_flows_per_second": 2.81
+      "investigation_triggers": 18446,
+      "replay_analysis_flows_per_second": 10163.0,
+      "wall_seconds_at_requested_100k_flows_per_second": 12.66
     }
   },
   "labels_used_for": "scoring only; no model or threshold was tuned on this partition",
-  "model_version": "catboost-fit_selection-seed42-noport",
-  "anomaly_version": "iforest-benign-seed42",
-  "anomaly_detector": "isolation_forest",
+  "model_version": "catboost-all_training-seed42-noport",
+  "anomaly_version": "scaled_ensemble-benign-seed42",
+  "anomaly_detector": "scaled_ensemble",
   "fusion_config": {
     "low_confidence": 0.6,
     "benign_override_below": null
@@ -322,35 +321,35 @@
   },
   "agent1": {
     "rows": 114185,
-    "accuracy": 0.9999474536935674,
-    "macro_f1": 0.9998231651318518,
-    "balanced_accuracy": 0.9996870939367346,
-    "binary_attack_false_positive_rate": 4.9999166680555324e-05,
+    "accuracy": 0.999964969129045,
+    "macro_f1": 0.9999029966740844,
+    "balanced_accuracy": 0.9998243802739232,
+    "binary_attack_false_positive_rate": 1.666638889351844e-05,
     "binary_attack_false_negative_rate": 5.536689797726266e-05,
     "per_class": {
       "BENIGN": {
-        "precision": 0.9999500008333194,
-        "recall": 0.9999500008333194,
-        "f1": 0.9999500008333194,
+        "precision": 0.999950002499875,
+        "recall": 0.9999833336111065,
+        "f1": 0.9999666677777408,
         "support": 60001,
-        "false_negative_rate": 4.999916668058102e-05,
+        "false_negative_rate": 1.6666388893527007e-05,
         "false_positive_rate": 5.536689797726266e-05
       },
       "BRUTE_FORCE": {
         "precision": 1.0,
-        "recall": 0.9985549132947977,
-        "f1": 0.9992769342010123,
+        "recall": 0.9992774566473989,
+        "f1": 0.9996385977593061,
         "support": 1384,
-        "false_negative_rate": 0.0014450867052022698,
+        "false_negative_rate": 0.0007225433526011349,
         "false_positive_rate": 0.0
       },
       "DOS": {
-        "precision": 0.9999166736105325,
+        "precision": 0.9999583350693722,
         "recall": 1.0,
-        "f1": 0.9999583350693722,
+        "f1": 0.9999791671006854,
         "support": 24000,
         "false_negative_rate": 0.0,
-        "false_positive_rate": 2.217663691301214e-05
+        "false_positive_rate": 1.108831845650607e-05
       },
       "DDOS": {
         "precision": 1.0,
@@ -361,12 +360,12 @@
         "false_positive_rate": 0.0
       },
       "PORT_SCAN": {
-        "precision": 0.9999305555555555,
-        "recall": 0.9999305555555555,
-        "f1": 0.9999305555555555,
+        "precision": 1.0,
+        "recall": 0.9998611111111111,
+        "f1": 0.9999305507326898,
         "support": 14400,
-        "false_negative_rate": 6.94444444444553e-05,
-        "false_positive_rate": 1.0021546324597885e-05
+        "false_negative_rate": 0.0001388888888889106,
+        "false_positive_rate": 0.0
       }
     },
     "confusion_matrix": {
@@ -379,15 +378,15 @@
       ],
       "rows_true_columns_predicted": [
         [
-          59998,
+          60000,
           0,
-          2,
+          1,
           0,
-          1
+          0
         ],
         [
-          2,
-          1382,
+          1,
+          1383,
           0,
           0,
           0
@@ -407,46 +406,46 @@
           0
         ],
         [
-          1,
+          2,
           0,
           0,
           0,
-          14399
+          14398
         ]
       ]
     }
   },
   "agent1_excluding_rows_also_in_training": {
     "rows": 104390,
-    "accuracy": 0.9999425232301945,
-    "macro_f1": 0.9998134096138918,
-    "balanced_accuracy": 0.9996773634919075,
-    "binary_attack_false_positive_rate": 5.362697079117658e-05,
+    "accuracy": 0.9999616821534629,
+    "macro_f1": 0.9998934939061318,
+    "balanced_accuracy": 0.9998061286523061,
+    "binary_attack_false_positive_rate": 1.7875656930392192e-05,
     "binary_attack_false_negative_rate": 6.19220607661823e-05,
     "per_class": {
       "BENIGN": {
-        "precision": 0.9999463730292089,
-        "recall": 0.9999463730292089,
-        "f1": 0.9999463730292089,
+        "precision": 0.999946374946375,
+        "recall": 0.9999821243430697,
+        "f1": 0.999964249325206,
         "support": 55942,
-        "false_negative_rate": 5.362697079114298e-05,
+        "false_negative_rate": 1.7875656930343986e-05,
         "false_positive_rate": 6.19220607661823e-05
       },
       "BRUTE_FORCE": {
         "precision": 1.0,
-        "recall": 0.9985549132947977,
-        "f1": 0.9992769342010123,
+        "recall": 0.9992774566473989,
+        "f1": 0.9996385977593061,
         "support": 1384,
-        "false_negative_rate": 0.0014450867052022698,
+        "false_negative_rate": 0.0007225433526011349,
         "false_positive_rate": 0.0
       },
       "DOS": {
-        "precision": 0.9999164229001254,
+        "precision": 0.9999582097037067,
         "recall": 1.0,
-        "f1": 0.9999582097037067,
+        "f1": 0.9999791044152371,
         "support": 23928,
         "false_negative_rate": 0.0,
-        "false_positive_rate": 2.485645397827546e-05
+        "false_positive_rate": 1.242822698913773e-05
       },
       "DDOS": {
         "precision": 1.0,
@@ -457,12 +456,12 @@
         "false_positive_rate": 0.0
       },
       "PORT_SCAN": {
-        "precision": 0.9998855311355311,
-        "recall": 0.9998855311355311,
-        "f1": 0.9998855311355311,
+        "precision": 1.0,
+        "recall": 0.9997710622710623,
+        "f1": 0.9998855180309101,
         "support": 8736,
-        "false_negative_rate": 0.00011446886446886406,
-        "false_positive_rate": 1.0454345871578816e-05
+        "false_negative_rate": 0.00022893772893772812,
+        "false_positive_rate": 0.0
       }
     },
     "confusion_matrix": {
@@ -475,15 +474,15 @@
       ],
       "rows_true_columns_predicted": [
         [
-          55939,
+          55941,
           0,
-          2,
+          1,
           0,
-          1
+          0
         ],
         [
-          2,
-          1382,
+          1,
+          1383,
           0,
           0,
           0
@@ -503,11 +502,11 @@
           0
         ],
         [
-          1,
+          2,
           0,
           0,
           0,
-          8735
+          8734
         ]
       ]
     },
@@ -515,68 +514,68 @@
   },
   "agent2": {
     "rows": 114185,
-    "roc_auc": 0.8844509404406723,
-    "pr_auc": 0.825657443548279,
+    "roc_auc": 0.9804986001906613,
+    "pr_auc": 0.9502659314706752,
     "attack_prevalence": 0.47452817795682445,
-    "recall": 0.559021113243762,
-    "false_positive_rate": 0.05003249945834236,
-    "precision": 0.9098281869518202,
+    "recall": 0.9998523549387273,
+    "false_positive_rate": 0.0500658322361294,
+    "precision": 0.9474641483036027,
     "per_class_flag_rate": {
-      "BENIGN": 0.05003249945834236,
-      "BRUTE_FORCE": 0.000722543352601156,
-      "DOS": 0.7257083333333333,
-      "DDOS": 0.8903472222222222,
-      "PORT_SCAN": 0.0035416666666666665
+      "BENIGN": 0.0500658322361294,
+      "BRUTE_FORCE": 0.9978323699421965,
+      "DOS": 0.9997916666666666,
+      "DDOS": 1.0,
+      "PORT_SCAN": 1.0
     },
     "threshold_curve": [
       {
         "threshold": 0.8,
-        "recall": 0.7267274472168906,
-        "false_positive_rate": 0.19754670755487408
+        "recall": 1.0,
+        "false_positive_rate": 0.1978300361660639
       },
       {
         "threshold": 0.9,
-        "recall": 0.703639450760372,
-        "false_positive_rate": 0.0975150414159764
+        "recall": 0.9999630887346819,
+        "false_positive_rate": 0.09798170030499492
       },
       {
         "threshold": 0.95,
-        "recall": 0.559021113243762,
-        "false_positive_rate": 0.05003249945834236
+        "recall": 0.9998523549387273,
+        "false_positive_rate": 0.0500658322361294
       },
       {
         "threshold": 0.98,
-        "recall": 0.09772257492986859,
-        "false_positive_rate": 0.018616356394060098
+        "recall": 0.44564816181898714,
+        "false_positive_rate": 0.019049682505291578
       },
       {
         "threshold": 0.99,
-        "recall": 0.011202569024066146,
-        "false_positive_rate": 0.00961650639156014
+        "recall": 0.19607264137014616,
+        "false_positive_rate": 0.008949850835819404
       }
     ],
     "score_histogram_by_class": {
       "BENIGN": [
-        3110,
-        2877,
-        3134,
-        2920,
-        3026,
-        2935,
-        2951,
-        3085,
-        3130,
-        2916,
-        2871,
-        3017,
-        2879,
-        3187,
-        3050,
-        3060,
-        2987,
-        3015,
-        2849,
-        3002
+        3078,
+        3071,
+        2966,
+        3032,
+        2959,
+        3279,
+        2773,
+        2956,
+        2984,
+        3169,
+        2960,
+        2906,
+        2803,
+        3074,
+        3019,
+        3102,
+        2980,
+        3011,
+        2875,
+        3004
       ],
       "BRUTE_FORCE": [
         0,
@@ -592,13 +591,13 @@
         0,
         0,
         0,
-        3,
-        2,
-        812,
-        547,
-        18,
+        0,
+        0,
+        0,
+        0,
         1,
-        1
+        2,
+        1381
       ],
       "DOS": [
         0,
@@ -612,15 +611,15 @@
         0,
         0,
         0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
         1,
-        60,
-        10,
         4,
-        27,
-        10,
-        220,
-        6251,
-        17417
+        23995
       ],
       "DDOS": [
         0,
@@ -635,14 +634,14 @@
         0,
         0,
         0,
-        2,
         0,
         0,
         0,
-        1,
-        63,
-        1513,
-        12821
+        0,
+        0,
+        0,
+        0,
+        14400
       ],
       "PORT_SCAN": [
         0,
@@ -656,49 +655,49 @@
         0,
         0,
         0,
-        132,
-        5787,
-        670,
-        6133,
-        1164,
-        316,
-        76,
-        71,
-        51
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        14400
       ]
     }
   },
   "system": {
     "rows": 114185,
-    "accuracy": 0.9999474536935674,
-    "macro_f1": 0.9998231651318518,
-    "balanced_accuracy": 0.9996870939367346,
-    "binary_attack_false_positive_rate": 4.9999166680555324e-05,
+    "accuracy": 0.999964969129045,
+    "macro_f1": 0.9999029966740844,
+    "balanced_accuracy": 0.9998243802739232,
+    "binary_attack_false_positive_rate": 1.666638889351844e-05,
     "binary_attack_false_negative_rate": 5.536689797726266e-05,
     "per_class": {
       "BENIGN": {
-        "precision": 0.9999500008333194,
-        "recall": 0.9999500008333194,
-        "f1": 0.9999500008333194,
+        "precision": 0.999950002499875,
+        "recall": 0.9999833336111065,
+        "f1": 0.9999666677777408,
         "support": 60001,
-        "false_negative_rate": 4.999916668058102e-05,
+        "false_negative_rate": 1.6666388893527007e-05,
         "false_positive_rate": 5.536689797726266e-05
       },
       "BRUTE_FORCE": {
         "precision": 1.0,
-        "recall": 0.9985549132947977,
-        "f1": 0.9992769342010123,
+        "recall": 0.9992774566473989,
+        "f1": 0.9996385977593061,
         "support": 1384,
-        "false_negative_rate": 0.0014450867052022698,
+        "false_negative_rate": 0.0007225433526011349,
         "false_positive_rate": 0.0
       },
       "DOS": {
-        "precision": 0.9999166736105325,
+        "precision": 0.9999583350693722,
         "recall": 1.0,
-        "f1": 0.9999583350693722,
+        "f1": 0.9999791671006854,
         "support": 24000,
         "false_negative_rate": 0.0,
-        "false_positive_rate": 2.217663691301214e-05
+        "false_positive_rate": 1.108831845650607e-05
       },
       "DDOS": {
         "precision": 1.0,
@@ -709,12 +708,12 @@
         "false_positive_rate": 0.0
       },
       "PORT_SCAN": {
-        "precision": 0.9999305555555555,
-        "recall": 0.9999305555555555,
-        "f1": 0.9999305555555555,
+        "precision": 1.0,
+        "recall": 0.9998611111111111,
+        "f1": 0.9999305507326898,
         "support": 14400,
-        "false_negative_rate": 6.94444444444553e-05,
-        "false_positive_rate": 1.0021546324597885e-05
+        "false_negative_rate": 0.0001388888888889106,
+        "false_positive_rate": 0.0
       }
     },
     "confusion_matrix": {
@@ -727,15 +726,15 @@
       ],
       "rows_true_columns_predicted": [
         [
-          59998,
+          60000,
           0,
-          2,
+          1,
           0,
-          1
+          0
         ],
         [
-          2,
-          1382,
+          1,
+          1383,
           0,
           0,
           0
@@ -755,118 +754,117 @@
           0
         ],
         [
-          1,
+          2,
           0,
           0,
           0,
-          14399
+          14398
         ]
       ]
     }
   },
   "ablation": {
     "agent1_alone": {
-      "macro_f1": 0.9998231651318518,
-      "accuracy": 0.9999474536935674,
+      "macro_f1": 0.9999029966740844,
+      "accuracy": 0.999964969129045,
       "policy": {
         "counts": {
           "ALLOW": 59995,
-          "BLOCK": 54166,
-          "REVIEW": 24
+          "BLOCK": 54153,
+          "REVIEW": 37
         },
-        "attacks_blocked_rate": 0.9996677986121364,
-        "attacks_allowed_rate": 5.536689797726266e-05,
-        "attacks_reviewed_rate": 0.0002768344898863133,
-        "benign_allowed_rate": 0.9998500024999584,
+        "attacks_blocked_rate": 0.9994278753875683,
+        "attacks_allowed_rate": 3.691126531817511e-05,
+        "attacks_reviewed_rate": 0.0005352133471135391,
+        "benign_allowed_rate": 0.9998666688888519,
         "benign_blocked_rate": 0.0,
-        "benign_reviewed_rate": 0.00014999750004166597
+        "benign_reviewed_rate": 0.00013333111114814753
       }
     },
     "agent1_plus_agent2": {
-      "macro_f1": 0.9998231651318518,
-      "accuracy": 0.9999474536935674,
+      "macro_f1": 0.9999029966740844,
+      "accuracy": 0.999964969129045,
       "policy": {
         "counts": {
-          "ALLOW": 56997,
-          "BLOCK": 54168,
-          "REVIEW": 3020
+          "ALLOW": 56995,
+          "BLOCK": 54181,
+          "REVIEW": 3009
         },
-        "attacks_blocked_rate": 0.9996862542447955,
-        "attacks_allowed_rate": 3.691126531817511e-05,
-        "attacks_reviewed_rate": 0.0002768344898863133,
+        "attacks_blocked_rate": 0.9999261774693636,
+        "attacks_allowed_rate": 0.0,
+        "attacks_reviewed_rate": 7.382253063635022e-05,
         "benign_allowed_rate": 0.9499008349860836,
         "benign_blocked_rate": 1.666638889351844e-05,
         "benign_reviewed_rate": 0.05008249862502292
       }
     },
     "plus_campaign_intelligence": {
-      "macro_f1": 0.9998231651318518,
-      "accuracy": 0.9999474536935674,
+      "macro_f1": 0.9999029966740844,
+      "accuracy": 0.999964969129045,
       "policy": {
         "counts": {
-          "ALLOW": 52039,
-          "BLOCK": 54141,
-          "REVIEW": 8005
+          "ALLOW": 52272,
+          "BLOCK": 54142,
+          "REVIEW": 7771
         },
-        "attacks_blocked_rate": 0.9991879521630002,
-        "attacks_allowed_rate": 1.8455632659087555e-05,
+        "attacks_blocked_rate": 0.9992064077956593,
+        "attacks_allowed_rate": 0.0,
         "attacks_reviewed_rate": 0.0007935922043407648,
-        "benign_allowed_rate": 0.8672855452409126,
+        "benign_allowed_rate": 0.8711854802419959,
         "benign_blocked_rate": 1.666638889351844e-05,
-        "benign_reviewed_rate": 0.13269778837019383
+        "benign_reviewed_rate": 0.1287978533691105
       }
     },
     "plus_investigation": {
-      "macro_f1": 0.9998231651318518,
-      "accuracy": 0.9999474536935674,
+      "macro_f1": 0.9999029966740844,
+      "accuracy": 0.999964969129045,
       "policy": {
         "counts": {
-          "ALLOW": 52039,
-          "BLOCK": 54141,
-          "REVIEW": 8005
+          "ALLOW": 52272,
+          "BLOCK": 54133,
+          "REVIEW": 7780
         },
-        "attacks_blocked_rate": 0.9991879521630002,
-        "attacks_allowed_rate": 1.8455632659087555e-05,
-        "attacks_reviewed_rate": 0.0007935922043407648,
-        "benign_allowed_rate": 0.8672855452409126,
-        "benign_blocked_rate": 1.666638889351844e-05,
-        "benign_reviewed_rate": 0.13269778837019383
+        "attacks_blocked_rate": 0.9990587627343865,
+        "attacks_allowed_rate": 0.0,
+        "attacks_reviewed_rate": 0.0009412372656134652,
+        "benign_allowed_rate": 0.8711854802419959,
+        "benign_blocked_rate": 0.0,
+        "benign_reviewed_rate": 0.12881451975800404
       }
     },
     "note": "Agent 2, campaigns and investigation change evidence and policy routing. They change final_class only if the benign override passed internal validation."
   },
-  "agent_agreement_rate": 0.7644699391338617,
+  "agent_agreement_rate": 0.9736042387353856,
   "evidence_status_counts": {
-    "AGREED_BENIGN": 52042,
-    "MULTI_SIGNAL_ATTACK": 30290,
-    "CAMPAIGN_CORROBORATED": 23632,
-    "CAMPAIGN_ONLY": 4958,
-    "ANOMALY_ONLY": 3001,
-    "CLASSIFIER_ONLY": 261,
-    "UNCERTAIN": 1
+    "MULTI_SIGNAL_ATTACK": 54174,
+    "AGREED_BENIGN": 52274,
+    "CAMPAIGN_ONLY": 4723,
+    "ANOMALY_ONLY": 3006,
+    "CAMPAIGN_CORROBORATED": 6,
+    "CLASSIFIER_ONLY": 2
   },
   "policy": {
     "counts": {
-      "ALLOW": 52039,
-      "BLOCK": 54141,
-      "REVIEW": 8005
+      "ALLOW": 52272,
+      "BLOCK": 54133,
+      "REVIEW": 7780
     },
-    "attacks_blocked_rate": 0.9991879521630002,
-    "attacks_allowed_rate": 1.8455632659087555e-05,
-    "attacks_reviewed_rate": 0.0007935922043407648,
-    "benign_allowed_rate": 0.8672855452409126,
-    "benign_blocked_rate": 1.666638889351844e-05,
-    "benign_reviewed_rate": 0.13269778837019383
+    "attacks_blocked_rate": 0.9990587627343865,
+    "attacks_allowed_rate": 0.0,
+    "attacks_reviewed_rate": 0.0009412372656134652,
+    "benign_allowed_rate": 0.8711854802419959,
+    "benign_blocked_rate": 0.0,
+    "benign_reviewed_rate": 0.12881451975800404
   },
   "policy_rule_counts": {
-    "CONFIDENT_ATTACK_WITH_INDEPENDENT_SUPPORT": 53912,
-    "CONFIDENT_BENIGN_NO_OTHER_SIGNAL": 52039,
-    "CAMPAIGN_ONLY_NEEDS_REVIEW": 5780,
-    "ANOMALY_ONLY_NEEDS_REVIEW": 2167,
-    "VERY_CONFIDENT_CLASSIFIER_ONLY": 229,
-    "UNRESOLVED_CONFLICT": 52,
-    "ATTACK_BELOW_BLOCK_THRESHOLD": 3,
-    "BENIGN_BELOW_ALLOW_THRESHOLD": 3
+    "CONFIDENT_ATTACK_WITH_INDEPENDENT_SUPPORT": 54131,
+    "CONFIDENT_BENIGN_NO_OTHER_SIGNAL": 52272,
+    "CAMPAIGN_ONLY_NEEDS_REVIEW": 5700,
+    "ANOMALY_ONLY_NEEDS_REVIEW": 2017,
+    "UNRESOLVED_CONFLICT": 60,
+    "VERY_CONFIDENT_CLASSIFIER_ONLY": 2,
+    "BENIGN_BELOW_ALLOW_THRESHOLD": 2,
+    "ATTACK_BELOW_BLOCK_THRESHOLD": 1
   },
   "campaign_intelligence": {
     "mode": "cohort",
@@ -875,7 +873,7 @@
       "DoS and DDoS cannot be separated without source addresses; both report as VOLUMETRIC_CANDIDATE",
       "record order stands in for time and is not verified chronology"
     ],
-    "total_campaigns": 27,
+    "total_campaigns": 21,
     "per_type": {
       "BRUTE_FORCE_CANDIDATE": {
         "campaigns": 7,
@@ -890,34 +888,35 @@
         "member_share_benign": 0.008495230137177076
       },
       "VOLUMETRIC_CANDIDATE": {
-        "campaigns": 19,
-        "member_flows": 43962,
-        "member_share_of_matching_class": 0.8725945134434284,
-        "member_share_benign": 0.12651835676265866
+        "campaigns": 13,
+        "member_flows": 43921,
+        "member_share_of_matching_class": 0.8742970333098062,
+        "member_share_benign": 0.12481500876573849
       }
     },
     "share_of_each_class_in_a_campaign": {
-      "BENIGN": 0.0964317261378977,
+      "BENIGN": 0.09509841502641622,
       "BRUTE_FORCE": 0.9277456647398844,
       "DDOS": 1.0,
-      "DOS": 0.998375,
+      "DOS": 1.0,
       "PORT_SCAN": 0.9915277777777778
     }
   },
   "investigation": {
-    "triggered": 32468,
-    "investigated": 32468,
+    "triggered": 18372,
+    "investigated": 18372,
     "verdicts": {
-      "SUPPORTS_ATTACK": 26277,
-      "CONFLICTING": 6191
+      "SUPPORTS_ATTACK": 11322,
+      "CONFLICTING": 7049,
+      "SUPPORTS_BENIGN": 1
     },
-    "seconds": 3.89,
-    "conflicts_holding_decisions": 13
+    "seconds": 2.29,
+    "conflicts_holding_decisions": 21
   },
   "latency": {
-    "agent1_ms_per_1k_flows": 0.32962735896646994,
-    "agent2_ms_per_1k_flows": 3.6907033150131583,
-    "scoring_campaign_fusion_policy_flows_per_second": 123465.28906981392,
-    "investigation_seconds": 3.89
+    "agent1_ms_per_1k_flows": 0.33425180189245113,
+    "agent2_ms_per_1k_flows": 71.59435491527493,
+    "scoring_campaign_fusion_policy_flows_per_second": 13082.311917397119,
+    "investigation_seconds": 2.29
   }
 }
